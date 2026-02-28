@@ -1,0 +1,107 @@
+数据库列名修复总结 - userID vs userphone
+=========================================
+
+## 问题诊断
+
+SQL错误：`java.sql.SQLSyntaxErrorException: Unknown column 'userID' in 'where clause'`
+
+根本原因：
+- 数据库 `user` 表的主键（用户ID）列名是 `userphone`
+- 但代码中多个Servlet使用了 `WHERE userID = ?` 来查询user表
+- 这导致数据库找不到 `userID` 列而报错
+
+## 数据库user表的实际结构
+
+```
+user表的列名：
+- userphone (主键，用户手机号)
+- userPassword (密码)
+- userName (昵称)
+- classID (班级编号)
+- studentID (学号)
+- gender (性别)
+- userEmail (邮箱)
+- userStatus (账户状态：1=激活，0=未激活，-1=已注销)
+```
+
+## 修复清单
+
+### 已修复的文件（共6个）
+
+#### 1. ✅ ChangeUserInfoServlet.java
+- 第82-90行：`WHERE userID = ?` → `WHERE userphone = ?`
+- 更新用户信息时需要正确指定where条件
+
+#### 2. ✅ DeleteAccountServlet.java (两处修改)
+- 第80行 (verifyPassword方法)：`WHERE userID = ?` → `WHERE userphone = ?`
+- 第116行 (updateUserStatus方法)：`WHERE userID = ?` → `WHERE userphone = ?`
+
+#### 3. ✅ ChangePasswordServlet.java (两处修改)
+- 第83行 (verifyOldPassword方法)：`WHERE userID = ?` → `WHERE userphone = ?`
+- 第111行 (updateNewPassword方法)：`WHERE userID = ?` → `WHERE userphone = ?`
+
+### 无需修改的文件
+
+以下Servlet已经正确使用了 `userphone`：
+- ✅ LoginServlet.java - 已使用 `userphone`
+- ✅ RegisterServlet.java - 已使用 `userphone` 列名
+- ✅ ResetPasswordServlet.java - 已使用 `userphone`
+- ✅ SendResetPwdCodeServlet.java - 已使用 `userphone`
+- ✅ SendCodeServlet.java - 不涉及数据库操作
+
+### 其他表的userID列
+
+以下Servlet中的 `WHERE userID = ?` 是正确的，因为它们操作的是其他表：
+- MaterialManagementServlet.java - 操作 `material` 表的 `userID` 列
+- 类似的 material 和 question 相关表 - 这些表中 `userID` 就是存储的用户手机号
+
+## 关键区别
+
+| 上下文 | 列名 | 说明 |
+|------|------|------|
+| user表（用户表） | userphone | 主键，用户手机号 |
+| material表 | userID | 外键，存储上传者的手机号 |
+| question表 | userID | 外键，存储提问者的手机号 |
+| question_comment表 | userID | 外键，存储评论者的手机号 |
+
+## 查询与修改模式总结
+
+### 正确的user表查询模式
+```java
+// 错误❌
+String sql = "SELECT ... FROM user WHERE userID = ?";
+
+// 正确✅
+String sql = "SELECT ... FROM user WHERE userphone = ?";
+```
+
+### 正确的其他表查询模式
+```java
+// 这些都是正确的，因为userID是存储的用户手机号
+String sql = "SELECT ... FROM material WHERE userID = ?";
+String sql = "SELECT ... FROM question WHERE userID = ?";
+String sql = "SELECT ... FROM question_comment WHERE userID = ?";
+```
+
+## 修复效果验证
+
+修复后，以下操作应该能够正常工作：
+- ✓ 修改个人信息 (ChangeUserInfoServlet)
+- ✓ 修改密码 (ChangePasswordServlet)
+- ✓ 删除账户 (DeleteAccountServlet)
+- ✓ 登录验证 (LoginServlet)
+- ✓ 重置密码 (ResetPasswordServlet)
+
+## 注意事项
+
+1. **重要**：userID 参数在session中存储的实际上是用户的手机号（userphone）
+   ```java
+   String userID = (String) session.getAttribute("userID");  // 这实际上是用户的手机号
+   ```
+
+2. **保持一致性**：所有涉及user表查询的地方都应该使用 `userphone` 列名
+
+3. **外键关系**：material、question等表中的userID列存储的是用户的手机号，这是与user表的外键关系
+
+修复日期：2026年2月22日
+

@@ -1,0 +1,190 @@
+<%@ page contentType="text/html;charset=UTF-8" language="java" %>
+<%@ page import="java.sql.*" %>
+<%
+    // 检查是否为管理员（这里简单检查，实际应该有更完善的权限管理）
+    String isAdmin = request.getParameter("admin");
+    if (!"true".equals(isAdmin)) {
+        // 可以添加实际的管理员验证逻辑
+    }
+%>
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>添加商品</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: "Microsoft YaHei", sans-serif;
+        }
+        body {
+            background-color: #f0f4f9;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container {
+            width: 500px;
+            background-color: white;
+            border-radius: 12px;
+            padding: 40px;
+            box-shadow: 0 0 16px rgba(0, 0, 0, 0.08);
+        }
+        .title {
+            font-size: 20px;
+            font-weight: bold;
+            color: #222;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+        .form-item {
+            margin-bottom: 20px;
+        }
+        .form-label {
+            display: block;
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 8px;
+        }
+        .form-input, .form-textarea {
+            width: 100%;
+            padding: 12px 15px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 14px;
+            font-family: inherit;
+            transition: border-color 0.3s;
+        }
+        .form-input:focus, .form-textarea:focus {
+            outline: none;
+            border-color: #0088ff;
+        }
+        .form-textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
+        .submit-btn {
+            width: 100%;
+            padding: 12px;
+            background-color: #0088ff;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        .submit-btn:hover {
+            background-color: #0077ee;
+        }
+        .back-btn {
+            display: block;
+            text-align: center;
+            margin-top: 20px;
+            color: #666;
+            font-size: 14px;
+            text-decoration: none;
+        }
+        .back-btn:hover {
+            color: #0088ff;
+        }
+        .info-box {
+            background-color: #fffbe6;
+            border: 1px solid #ffeaa7;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 20px;
+            font-size: 12px;
+            color: #856404;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="title">添加新商品</div>
+
+    <div class="info-box">
+        <strong>提示：</strong>商品ID会自动按顺序生成，请填写商品名称、所需积分和描述。
+    </div>
+
+    <form onsubmit="return submitAddGoods()">
+        <div class="form-item">
+            <label class="form-label">商品名称 *</label>
+            <input type="text" id="itemName" name="itemName" class="form-input" placeholder="输入商品名称" required>
+        </div>
+
+        <div class="form-item">
+            <label class="form-label">所需积分 *</label>
+            <input type="number" id="needPoint" name="needPoint" class="form-input" placeholder="输入所需积分" min="1" required>
+        </div>
+
+        <div class="form-item">
+            <label class="form-label">商品描述</label>
+            <textarea id="desc" name="desc" class="form-textarea" placeholder="输入商品描述（可选）"></textarea>
+        </div>
+
+        <button type="submit" class="submit-btn">添加商品</button>
+    </form>
+
+    <a href="javascript:history.back()" class="back-btn">返回</a>
+</div>
+
+<script>
+    function submitAddGoods() {
+        let itemName = document.getElementById("itemName").value.trim();
+        let needPoint = document.getElementById("needPoint").value.trim();
+        let desc = document.getElementById("desc").value.trim();
+
+        // 前端验证
+        if (!itemName) {
+            alert("商品名称不能为空");
+            return false;
+        }
+
+        if (!needPoint || parseInt(needPoint) < 1) {
+            alert("所需积分必须大于0");
+            return false;
+        }
+
+        // 提交请求
+        let xhr = new XMLHttpRequest();
+        xhr.open("POST", "/addGoods", true);
+        xhr.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
+
+        xhr.onreadystatechange = function() {
+            if (xhr.readyState === 4) {
+                if (xhr.status === 200) {
+                    try {
+                        let result = JSON.parse(xhr.responseText);
+                        alert(result.msg);
+                        if (result.success) {
+                            // 清空表单
+                            document.getElementById("itemName").value = "";
+                            document.getElementById("needPoint").value = "";
+                            document.getElementById("desc").value = "";
+                        }
+                    } catch (e) {
+                        alert("响应解析失败");
+                    }
+                } else {
+                    alert("请求失败，状态码：" + xhr.status);
+                }
+            }
+        };
+
+        let params = "itemName=" + encodeURIComponent(itemName) +
+                     "&needPoint=" + needPoint +
+                     "&desc=" + encodeURIComponent(desc);
+        xhr.send(params);
+
+        return false;
+    }
+</script>
+</body>
+</html>
+

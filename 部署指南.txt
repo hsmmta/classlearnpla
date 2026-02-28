@@ -1,0 +1,421 @@
+焚决项目 - 部署指南
+==================
+
+## 📦 部署前准备
+
+### 1. 环境检查
+
+```bash
+# 检查Java版本
+java -version
+# 应该是 Java 8 或更高版本
+
+# 检查Maven
+mvn -version
+# 应该显示Maven版本信息
+
+# 检查MySQL
+mysql --version
+# 应该显示MySQL版本信息
+```
+
+### 2. MySQL启动
+
+```bash
+# Windows
+net start MySQL80  # 或者你的MySQL服务名
+
+# Linux
+sudo systemctl start mysql
+# 或
+sudo service mysql start
+
+# 验证连接
+mysql -u root -p
+# 输入密码后应该进入MySQL命令行
+```
+
+### 3. Tomcat准备
+
+```bash
+# 确保Tomcat已解压到可用目录
+# Windows: D:\apache-tomcat-8.5.xx\
+# Linux: /opt/tomcat/
+
+# 检查是否可执行
+# Windows: bin\startup.bat
+# Linux: bin/startup.sh
+```
+
+---
+
+## 🔧 代码修复应用
+
+所有代码修复已完成！文件清单：
+
+✅ **修改的Servlet（19个）**
+```
+- SearchMaterialServlet.java
+- DiscussionListServlet.java
+- UploadMaterialServlet.java
+- EditMaterialServlet.java
+- DeleteMaterialServlet.java
+- AskQuestionServlet.java
+- AddQuestionCommentServlet.java
+- DeleteQuestionCommentServlet.java
+- LikeQuestionCommentServlet.java
+- AddCommentServlet.java
+- ChangeUserInfoServlet.java
+- DeleteAccountServlet.java
+- ChangePasswordServlet.java
+```
+
+✅ **修改的JSP（3个）**
+```
+- SearchMaterial.jsp
+- AddMaterial.jsp
+- EditMaterial.jsp
+```
+
+---
+
+## 🚀 编译和部署
+
+### 方式1：Maven命令行部署（推荐）
+
+```bash
+# 进入项目目录
+cd C:\Users\x\Desktop\焚决
+
+# 清理之前的构建
+mvn clean
+
+# 编译项目
+mvn compile
+
+# 检查是否有编译错误
+# 如果看到 BUILD SUCCESS 说明编译成功
+
+# 打包项目
+mvn package
+
+# 验证生成的war包
+# 应该在 target/ 目录下看到 焚决.war 文件
+```
+
+### 方式2：IDE部署（如果使用IntelliJ IDEA）
+
+```
+1. 右键项目 → Run/Debug Configurations
+2. 选择 Tomcat Server
+3. 配置Server路径和port
+4. 点击 Run 或 Debug
+```
+
+---
+
+## 📤 部署到Tomcat
+
+### 方式1：复制WAR包到webapps
+
+```bash
+# 1. 构建项目
+mvn clean package
+
+# 2. 复制war包到Tomcat的webapps目录
+# Windows
+copy target\焚决.war "D:\apache-tomcat-8.5.xx\webapps\"
+
+# Linux
+cp target/焚决.war /opt/tomcat/webapps/
+
+# 3. 启动Tomcat
+# Windows: bin\startup.bat
+# Linux: bin/startup.sh
+
+# 4. 访问应用
+# http://localhost:8080/焚决/auth/signin.html
+```
+
+### 方式2：热部署（开发时推荐）
+
+```bash
+# 使用Tomcat Maven插件
+mvn tomcat:deploy
+
+# 或者先启动Tomcat，然后在IDE中右键项目选择 Run on Server
+```
+
+---
+
+## ✅ 验证部署
+
+### 1. 检查Tomcat启动
+
+```
+访问 http://localhost:8080/
+应该看到Tomcat欢迎页面
+```
+
+### 2. 检查应用部署
+
+```
+访问 http://localhost:8080/焚决/auth/signin.html
+应该看到登录页面（没有404错误）
+```
+
+### 3. 测试数据库连接
+
+```
+登录页面应该正常加载
+（如果有数据库连接错误会显示在Tomcat日志中）
+```
+
+### 4. 测试登录功能
+
+```
+1. 使用有效的账号密码登录
+2. 登录成功后应该跳转到首页 http://localhost:8080/焚决/home/index.jsp
+3. 首页应该显示导航菜单
+```
+
+### 5. 测试核心功能
+
+```
+✅ 点击导航栏"资料区"
+   - 应该显示资料列表页面
+   - 能够搜索资料
+   - 能够查看资料详情
+
+✅ 点击导航栏"讨论区"
+   - 应该显示讨论列表页面
+   - 能够查看讨论详情
+
+✅ 点击"个人中心"
+   - 应该显示个人信息页面
+   - 能够修改个人信息
+   - 能够修改密码
+
+✅ 尝试上传资料
+   - 点击资料区上传按钮
+   - 应该显示上传表单
+   - 能够成功上传资料
+
+✅ 尝试提出问题
+   - 点击讨论区"我有问题"按钮
+   - 应该显示提问表单
+   - 能够成功提问
+```
+
+---
+
+## 🔍 常见问题排查
+
+### 问题1：404 Not Found
+
+**可能原因**：
+- 应用未正确部署
+- 访问路径错误
+
+**排查步骤**：
+```
+1. 检查Tomcat webapps目录下是否有焚决文件夹或焚决.war
+2. 检查访问地址：http://localhost:8080/焚决/auth/signin.html
+3. 查看Tomcat logs/catalina.out是否有错误
+```
+
+### 问题2：500 Internal Server Error
+
+**可能原因**：
+- Java代码异常
+- 数据库连接失败
+
+**排查步骤**：
+```
+1. 查看Tomcat日志：tail -f logs/catalina.out
+2. 查看错误堆栈信息
+3. 如果是SQLException，检查数据库连接
+4. 如果是NullPointerException，检查Session是否为空
+```
+
+### 问题3：无法连接数据库
+
+**可能原因**：
+- MySQL未启动
+- DBUtil中的连接信息不正确
+- 数据库或表不存在
+
+**排查步骤**：
+```
+1. 检查MySQL是否运行：
+   # Windows
+   tasklist | findstr mysql
+   # Linux
+   ps aux | grep mysql
+
+2. 检查MySQL连接：
+   mysql -u root -p
+
+3. 验证数据库存在：
+   SHOW DATABASES;
+   USE web_demo;
+   SHOW TABLES;
+
+4. 验证表结构：
+   DESC user;
+```
+
+### 问题4：页面显示乱码
+
+**原因**：编码问题
+
+**解决**：
+```
+1. 检查JSP页面头：<%@ page contentType="text/html;charset=UTF-8" %>
+2. 检查HTML meta标签：<meta charset="UTF-8">
+3. 检查IDE编辑器编码设置
+4. 清除浏览器缓存
+```
+
+### 问题5：表单无法提交
+
+**可能原因**：
+- form action路径错误
+- Servlet路由配置错误
+- JavaScript错误
+
+**排查步骤**：
+```
+1. 检查form action是否使用了contextPath
+2. 检查Servlet的@WebServlet路由
+3. 打开浏览器开发者工具查看网络请求
+4. 查看浏览器console是否有JavaScript错误
+```
+
+---
+
+## 📝 日志查看
+
+### 查看Tomcat日志
+
+```bash
+# Linux/Mac
+tail -f /path/to/tomcat/logs/catalina.out
+
+# Windows
+type "D:\apache-tomcat-8.5.xx\logs\catalina.2026-02-22.log"
+
+# 只查看错误
+grep ERROR logs/catalina.out
+```
+
+### 查看应用日志
+
+```bash
+# 搜索数据库相关错误
+grep SQLException logs/catalina.out
+
+# 搜索NPE错误
+grep NullPointerException logs/catalina.out
+
+# 搜索你的应用输出
+grep org.example logs/catalina.out
+```
+
+---
+
+## 🛠️ 故障排除流程
+
+如果部署后仍有问题，按以下流程排查：
+
+```
+1. 验证部署
+   └─ 检查Tomcat是否启动
+   └─ 检查应用是否正确部署
+   └─ 访问简单的JSP（如登录页）
+
+2. 检查数据库
+   └─ 检查MySQL是否运行
+   └─ 检查能否连接到MySQL
+   └─ 检查数据库和表是否存在
+
+3. 检查代码
+   └─ 重新编译：mvn clean compile
+   └─ 检查是否有编译错误
+   └─ 检查修复是否应用正确
+
+4. 查看日志
+   └─ 查看Tomcat catalina.out
+   └─ 找到具体错误信息
+   └─ 根据错误信息进行修正
+
+5. 清除缓存
+   └─ 删除target目录
+   └─ 删除.m2缓存（可选）
+   └─ 重新编译部署
+```
+
+---
+
+## 💡 开发/测试技巧
+
+### 用无痕浏览窗口测试
+
+```
+这样可以避免缓存问题，确保测试的真实性
+
+Chrome: Ctrl+Shift+N
+Firefox: Ctrl+Shift+P
+Edge: Ctrl+Shift+P
+```
+
+### 快速重启应用
+
+```bash
+# 方式1：使用Tomcat Manager重启
+curl http://localhost:8080/manager/text/reload?path=/焚决
+
+# 方式2：重新部署WAR包
+mvn clean package && cp target/焚决.war /path/to/tomcat/webapps/
+# 删除原来的焚决文件夹，让Tomcat重新解压WAR包
+```
+
+### 监控Tomcat进程
+
+```bash
+# Linux
+ps aux | grep tomcat
+
+# Windows
+tasklist | findstr java
+
+# 杀死进程后重启
+# Linux: kill -9 <PID>
+# Windows: taskkill /PID <PID> /F
+```
+
+---
+
+## 📞 获取帮助
+
+如果遇到问题，请：
+
+1. **查看生成的文档**
+   - `修复完整报告.txt` - 详细修复说明
+   - `功能修复验收清单.txt` - 修改清单
+   - `快速参考指南.txt` - 快速查阅
+
+2. **查看日志文件**
+   - Tomcat日志：`catalina.out` 或 `catalina.YYYY-MM-DD.log`
+   - 应用日志：查看Tomcat输出的错误堆栈
+
+3. **重新检查步骤**
+   - 确保数据库正在运行
+   - 确保所有文件都已修改
+   - 确保重新编译部署
+
+---
+
+修复完成日期：2026年2月22日
+部署指南版本：v1.0
+

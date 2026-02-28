@@ -1,0 +1,248 @@
+焚决项目 - 积分功能实现指南
+============================
+
+## 功能概述
+
+添加了一个新的积分系统，用户可以在个人中心查看自己的积分。
+
+---
+
+## 实现内容
+
+### 1️⃣ 数据库表创建
+
+#### 创建 points 表
+```sql
+CREATE TABLE IF NOT EXISTS points (
+    userID VARCHAR(20) PRIMARY KEY,
+    userName VARCHAR(20),
+    points INT DEFAULT 0,
+    FOREIGN KEY (userID) REFERENCES user(userphone),
+    FOREIGN KEY (userName) REFERENCES user(userName)
+);
+```
+
+**表结构说明**：
+- `userID` (VARCHAR(20), PRIMARY KEY)：用户ID，与user表的userphone关联
+- `userName` (VARCHAR(20))：用户名，与user表的userName关联
+- `points` (INT, DEFAULT 0)：用户积分，默认为0
+
+### 2️⃣ 修改个人信息页面
+
+#### 修改的文件：`getUserInfo.jsp`
+
+**添加的内容**：
+1. 页面开头添加了Java代码块，用于查询用户积分
+2. 在邮箱项后添加了积分显示项
+3. 积分显示为橙色加粗，便于用户识别
+
+```html
+<!-- 个人积分 -->
+<div class="info-item">
+    <span class="info-label">个人积分</span>
+    <span class="info-value" id="points" style="color: #ff9800; font-weight: bold;">
+        <%= userPoints %>
+    </span>
+</div>
+```
+
+### 3️⃣ 创建积分更新 Servlet
+
+#### 新建文件：`UpdatePointsServlet.java`
+
+**功能**：
+- 提供 POST 接口 `/updatePoints` 用于更新用户积分
+- 接受参数：`userID`（用户ID）和 `points`（新的积分值）
+- 返回 JSON 格式的响应
+
+**使用示例**：
+```javascript
+// 在需要更新积分的地方调用
+let xhr = new XMLHttpRequest();
+xhr.open("POST", "/updatePoints", true);
+xhr.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
+xhr.send("userID=13800000001&points=100");
+```
+
+---
+
+## 部署步骤
+
+### 步骤1：创建数据库表
+
+打开 MySQL，执行以下命令：
+
+```bash
+mysql -u root -p web_demo < 创建积分表.sql
+```
+
+或在 MySQL 命令行中复制粘贴：
+
+```sql
+USE web_demo;
+
+CREATE TABLE IF NOT EXISTS points (
+    userID VARCHAR(20) PRIMARY KEY,
+    userName VARCHAR(20),
+    points INT DEFAULT 0,
+    FOREIGN KEY (userID) REFERENCES user(userphone),
+    FOREIGN KEY (userName) REFERENCES user(userName)
+);
+
+-- 为现有用户初始化积分
+INSERT IGNORE INTO points (userID, userName, points)
+SELECT userphone, userName, 0 FROM user;
+
+-- 验证
+DESC points;
+SELECT * FROM points;
+```
+
+### 步骤2：重新编译和部署
+
+```bash
+cd C:\Users\x\Desktop\焚决
+mvn clean
+mvn compile
+mvn package
+```
+
+### 步骤3：重启 Tomcat
+
+```
+1. 停止 Tomcat
+2. 删除 webapps/焚决 文件夹
+3. 重启 Tomcat
+```
+
+### 步骤4：验证功能
+
+1. 登录系统
+2. 进入个人中心
+3. **应该能看到"个人积分"项，显示积分值** ✅
+
+---
+
+## 查询和更新积分
+
+### 查询用户积分
+
+在个人中心页面，积分会自动从 points 表中查询并显示。
+
+### 更新用户积分
+
+在任何需要更新积分的地方，可以调用 UpdatePointsServlet：
+
+```javascript
+// JavaScript 示例
+function updateUserPoints(userID, newPoints) {
+    let xhr = new XMLHttpRequest();
+    xhr.open("POST", "/updatePoints", true);
+    xhr.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
+
+    xhr.onreadystatechange = function() {
+        if (xhr.readyState === 4 && xhr.status === 200) {
+            let result = JSON.parse(xhr.responseText);
+            if (result.success) {
+                console.log("积分更新成功");
+                // 重新加载页面以显示新的积分
+                location.reload();
+            } else {
+                alert("积分更新失败：" + result.msg);
+            }
+        }
+    };
+
+    xhr.send("userID=" + userID + "&points=" + newPoints);
+}
+```
+
+### Java 中更新积分
+
+```java
+// 在任何 Servlet 中都可以调用
+UpdatePointsServlet servlet = new UpdatePointsServlet();
+// 需要自己实现逻辑来调用更新方法
+```
+
+---
+
+## 数据库字段说明
+
+### points 表
+
+| 字段名 | 类型 | 约束 | 说明 |
+|--------|------|------|------|
+| userID | VARCHAR(20) | PRIMARY KEY, FOREIGN KEY | 用户ID（手机号），主键，引用 user 表的 userphone |
+| userName | VARCHAR(20) | FOREIGN KEY | 用户名，引用 user 表的 userName |
+| points | INT | DEFAULT 0 | 用户积分，默认为 0 |
+
+---
+
+## 文件清单
+
+### 新建文件
+- ✅ `创建积分表.sql` - 数据库表创建脚本
+- ✅ `UpdatePointsServlet.java` - 积分更新 Servlet
+
+### 修改文件
+- ✅ `getUserInfo.jsp` - 添加积分显示
+
+---
+
+## 后续扩展
+
+### 可以继续实现的功能：
+
+1. **获取用户积分 API**
+   - 创建 GetPointsServlet 用于查询用户积分
+
+2. **积分兑换功能**
+   - 在积分商城中使用积分兑换奖品
+
+3. **积分增加规则**
+   - 发布资料 +10 积分
+   - 参与讨论 +5 积分
+   - 发表评论 +2 积分
+   - 等等
+
+4. **积分排行榜**
+   - 显示用户积分排名
+
+5. **积分变动日志**
+   - 记录用户的积分变动历史
+
+---
+
+## 注意事项
+
+1. **确保 user 表中的所有用户都有对应的 points 记录**
+   - 脚本中的 `INSERT IGNORE INTO` 可以为现有用户初始化积分
+
+2. **新注册用户需要在 points 表中创建记录**
+   - 可以在 RegisterServlet 中添加代码
+
+3. **确保 userphone 列存在于 user 表中**
+   - points 表依赖 user 表的 userphone 列作为外键
+
+4. **数据库连接信息**
+   - UpdatePointsServlet 使用的是 DBUtil 中配置的数据库连接
+   - 确保数据库地址、用户名、密码正确
+
+---
+
+## 测试验证
+
+### 测试清单
+
+- [ ] 数据库表已创建
+- [ ] 现有用户已初始化积分（0分）
+- [ ] 登录系统后能看到个人中心
+- [ ] 个人中心能显示个人积分（默认 0）
+- [ ] 可以通过 UpdatePointsServlet 更新积分
+- [ ] 更新后刷新页面能看到新的积分值
+
+---
+
+修复完成日期：2026年2月22日
+

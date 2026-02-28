@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>班级学习社区平台-注册</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: "Microsoft YaHei", sans-serif;
+        }
+        body {
+            background-color: #f5f5f5;
+        }
+        /* 平台标题样式：和登录页统一 */
+        .platform-title {
+            text-align: center;
+            padding: 30px 0;
+            font-size: 28px;
+            color: #333;
+            font-weight: bold;
+        }
+        /* 注册容器：居中卡片式布局，和登录页一致 */
+        .register-container {
+            width: 450px;
+            margin: 0 auto;
+            padding: 30px;
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        /* 输入框/下拉框样式：和登录页统一 */
+        input[type="text"], input[type="password"], select {
+            width: 100%;
+            padding: 10px;
+            margin: 8px 0;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        /* 按钮样式：和登录页统一 */
+        button, input[type="submit"] {
+            padding: 10px 15px;
+            border: none;
+            border-radius: 4px;
+            background-color: #0088ff;
+            color: white;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        button:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+        /* 链接样式：和登录页统一 */
+        .link {
+            margin-top: 15px;
+            display: block;
+            text-align: center;
+            color: #0088ff;
+            text-decoration: none;
+        }
+        .link:hover {
+            text-decoration: underline;
+        }
+        /* 提示文字样式 */
+        .hint {
+            font-size: 12px;
+            color: #999;
+            margin-left: 5px;
+        }
+    </style>
+    <script>
+        function sendCode() {
+            // 调试日志1：函数是否执行
+            console.log("===== 发送验证码函数开始执行 =====");
+
+            let phone = document.getElementById("userID").value;
+            console.log("输入的手机号：", phone); // 调试日志2：打印手机号
+
+            if (!/^1[3-9]\d{9}$/.test(phone)) {
+                alert("请输入正确的11位手机号！");
+                return;
+            }
+
+            let btn = document.getElementById("sendCodeBtn");
+            console.log("找到的按钮元素：", btn); // 调试日志3：打印按钮是否找到
+            btn.disabled = true;
+            let count = 60;
+            btn.innerText = "重新发送(" + count + ")";
+            let timer = setInterval(() => {
+                count--;
+                btn.innerText = "重新发送(" + count + ")";
+                if (count === 0) {
+                    clearInterval(timer);
+                    btn.disabled = false;
+                    btn.innerText = "发送验证码";
+                }
+            }, 1000);
+
+            let xhr = new XMLHttpRequest();
+            // 调试日志4：打印请求配置
+            console.log("请求路径：/sendCode，请求方式：POST");
+            xhr.open("POST", "/sendCode", true);
+            xhr.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
+            xhr.send("phone=" + phone);
+
+            // 核心修改：完整的状态处理（包括失败/异常）
+            xhr.onreadystatechange = function() {
+                console.log("请求状态：", xhr.readyState, "| 响应状态码：", xhr.status); // 调试日志5：打印请求状态
+                if (xhr.readyState === 4) { // 请求完成
+                    if (xhr.status === 200) { // 请求成功
+                        alert(xhr.responseText);
+                    } else { // 请求失败（404/500等）
+                        alert("验证码发送失败！响应状态码：" + xhr.status + "，请检查后台接口");
+                        // 重置按钮（避免一直倒计时）
+                        clearInterval(timer);
+                        btn.disabled = false;
+                        btn.innerText = "发送验证码";
+                    }
+                }
+            };
+
+            // 捕获请求异常（比如网络错误）
+            xhr.onerror = function() {
+                alert("验证码发送请求异常！请检查网络或后台接口");
+                clearInterval(timer);
+                btn.disabled = false;
+                btn.innerText = "发送验证码";
+            };
+        }
+
+        // 注册表单前端校验（新增确认密码、性别校验）
+        function checkRegisterForm() {
+            let phone = document.getElementById("userID").value;
+            let password = document.getElementById("userPassword").value;
+            let repassword = document.getElementById("repassword").value;
+            let userName = document.getElementById("userName").value;
+            let classID = document.getElementById("classID").value;
+            let studentID = document.getElementById("studentID").value;
+            let gender = document.getElementById("gender").value;
+
+            // 手机号校验
+            if (!/^1[3-9]\d{9}$/.test(phone)) {
+                alert("请输入正确的11位手机号！");
+                return false;
+            }
+            // 密码校验（至少6位）
+            if (password.length < 6) {
+                alert("密码长度不能少于6位！");
+                return false;
+            }
+            // 确认密码校验
+            if (password !== repassword) {
+                alert("两次输入的密码不一致！");
+                return false;
+            }
+            // 昵称校验
+            if (userName.trim() === "") {
+                alert("用户昵称不能为空！");
+                return false;
+            }
+            // 班级ID校验
+            if (classID.trim() === "") {
+                alert("班级ID不能为空！");
+                return false;
+            }
+            // 学号校验
+            if (studentID.trim() === "") {
+                alert("学号不能为空！");
+                return false;
+            }
+            // 性别校验
+            if (gender === "") {
+                alert("请选择性别！");
+                return false;
+            }
+            return true;
+        }
+    </script>
+</head>
+<body>
+<!-- 平台标题：和登录页一致，显示在顶部居中 -->
+<div class="platform-title">班级学习社区平台</div>
+
+<!-- 注册容器：居中卡片式布局，和登录页风格统一 -->
+<div class="register-container">
+    <h2 style="text-align: center; margin-bottom: 20px;">用户注册</h2>
+    <form action="/register" method="post" onsubmit="return checkRegisterForm()">
+        <!-- 手机号 -->
+        手机号：<input type="text" id="userID" name="userID" placeholder="请输入11位手机号" maxlength="11"><br><br>
+
+        <!-- 验证码 -->
+        验证码：<input type="text" name="code" placeholder="请输入6位验证码" maxlength="6">
+        <button type="button" id="sendCodeBtn" onclick="sendCode()">发送验证码</button><br><br>
+
+        <!-- 密码 -->
+        登录密码：<input type="password" id="userPassword" name="userPassword" placeholder="请设置密码（≥6位）" maxlength="20">
+        <span class="hint">密码长度6-20位</span><br><br>
+
+        <!-- 确认密码（新增） -->
+        确认密码：<input type="password" id="repassword" name="repassword" placeholder="请再次输入密码" maxlength="20">
+        <span class="hint">请和上面密码保持一致</span><br><br>
+
+        <!-- 昵称 -->
+        用户昵称：<input type="text" id="userName" name="userName" placeholder="请输入昵称" maxlength="20"><br><br>
+
+        <!-- 班级ID -->
+        班级ID：<input type="text" id="classID" name="classID" placeholder="请输入班级ID:例如1623001" maxlength="15"><br><br>
+
+        <!-- 学号（优化显示文案） -->
+        学号：<input type="text" id="studentID" name="studentID" placeholder="请输入学号：例如162300101" maxlength="15"><br><br>
+
+        <!-- 性别（新增下拉选择） -->
+        性别：
+        <select id="gender" name="gender">
+            <option value="">请选择性别</option>
+            <option value="male">男</option>
+            <option value="female">女</option>
+        </select><br><br>
+
+        <!-- 邮箱（选填） -->
+        电子邮箱：<input type="text" name="userEmail" placeholder="选填：请输入电子邮箱">
+        <span class="hint">非必填项</span><br><br>
+
+        <!-- 注册按钮：宽度100%，和登录页按钮风格一致 -->
+        <input type="submit" value="注册" style="width: 100%;">
+    </form>
+
+    <a href="/auth/signin.html" class="link">已有账号？点击登录</a>
+</div>
+</body>
+</html>

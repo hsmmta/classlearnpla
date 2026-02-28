@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>班级学习社区平台-登录</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: "Microsoft YaHei", sans-serif;
+        }
+        body {
+            background-color: #f5f5f5;
+        }
+        .platform-title {
+            text-align: center;
+            padding: 30px 0;
+            font-size: 28px;
+            color: #333;
+            font-weight: bold;
+        }
+        .login-container {
+            width: 400px;
+            margin: 0 auto;
+            padding: 30px;
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        input[type="text"], input[type="password"] {
+            width: 100%;
+            padding: 10px;
+            margin: 8px 0;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        button, input[type="submit"] {
+            padding: 10px 15px;
+            border: none;
+            border-radius: 4px;
+            background-color: #0088ff;
+            color: white;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        button:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+        .radio-group {
+            margin: 10px 0;
+        }
+        .link {
+            margin-top: 15px;
+            display: block;
+            text-align: center;
+            color: #0088ff;
+            text-decoration: none;
+        }
+        .link:hover {
+            text-decoration: underline;
+        }
+        #sendCodeBtn {
+            margin-top: 8px;
+            padding: 10px;
+            width: 100%;
+            display: none;
+        }
+    </style>
+    <script>
+        function switchLoginType(type) {
+            let pwdDiv = document.getElementById("pwdDiv");
+            let codeDiv = document.getElementById("codeDiv");
+            let sendCodeBtn = document.getElementById("sendCodeBtn");
+
+            if (type === "password") {
+                pwdDiv.style.display = "block";
+                codeDiv.style.display = "none";
+                sendCodeBtn.style.display = "none";
+            } else {
+                pwdDiv.style.display = "none";
+                codeDiv.style.display = "block";
+                sendCodeBtn.style.display = "block";
+            }
+        }
+
+        // 2. 发送验证码（优化错误处理，匹配前端ID）
+        function sendLoginCode() {
+            // 修正：获取userID
+            let userID = document.getElementById("userID").value.trim();
+            if (!/^1[3-9]\d{9}$/.test(userID)) {
+                alert("验证码登录需要输入正确的11位手机号！");
+                return;
+            }
+
+            let btn = document.getElementById("sendCodeBtn");
+            btn.disabled = true;
+            let count = 60;
+            btn.innerText = "重新发送(" + count + ")";
+
+            let timer = setInterval(() => {
+                count--;
+                btn.innerText = "重新发送(" + count + ")";
+                if (count === 0) {
+                    clearInterval(timer);
+                    btn.disabled = false;
+                    btn.innerText = "发送验证码";
+                }
+            }, 1000);
+
+            let xhr = new XMLHttpRequest();
+            xhr.open("POST", "/sendCode", true);
+            xhr.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
+            xhr.send("phone=" + userID);
+
+            // 优化响应处理
+            xhr.onreadystatechange = function() {
+                if (xhr.readyState === 4) {
+                    if (xhr.status === 200) {
+                        alert(xhr.responseText);
+                    } else {
+                        alert("验证码发送失败！请重试");
+                        // 重置按钮
+                        clearInterval(timer);
+                        btn.disabled = false;
+                        btn.innerText = "发送验证码";
+                    }
+                }
+            };
+
+            // 捕获网络错误
+            xhr.onerror = function() {
+                alert("网络错误！验证码发送失败");
+                clearInterval(timer);
+                btn.disabled = false;
+                btn.innerText = "发送验证码";
+            };
+        }
+
+        // 3. 异步提交登录表单（修复字段名不匹配）
+        function submitLogin() {
+            // 3.1 前端校验：允许手机号或管理员账号
+            let userID = document.getElementById("userID").value.trim();
+
+            // 如果为空，提示错误
+            if (!userID) {
+                alert("请输入手机号或管理员账号！");
+                return false;
+            }
+
+            // 如果选择了验证码登录，必须是手机号格式
+            let loginType = document.querySelector('input[name="loginType"]:checked').value;
+            if (loginType === "code" && !/^1[3-9]\d{9}$/.test(userID)) {
+                alert("验证码登录需要输入正确的11位手机号！");
+                return false;
+            }
+
+            // 3.2 获取表单数据（匹配后端字段名）
+            let userPassword = document.getElementById("userPassword")?.value || "";
+            let code = document.getElementById("code")?.value || "";
+
+            // 3.3 构造请求参数（userID而非userphone）
+            let params = "userID=" + encodeURIComponent(userID) +
+                "&loginType=" + encodeURIComponent(loginType);
+
+            if (loginType === "password") {
+                if (userPassword.trim() === "") {
+                    alert("请输入登录密码！");
+                    return false;
+                }
+                params += "&userPassword=" + encodeURIComponent(userPassword);
+            } else {
+                if (code.trim() === "") {
+                    alert("请输入验证码！");
+                    return false;
+                }
+                params += "&code=" + encodeURIComponent(code);
+            }
+
+            // 3.4 异步提交请求
+            let xhr = new XMLHttpRequest();
+            xhr.open("POST", "/login", true);
+            xhr.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
+
+            xhr.onreadystatechange = function() {
+                if (xhr.readyState === 4) {
+                    if (xhr.status === 200) {
+                        try {
+                            let result = JSON.parse(xhr.responseText);
+                            if (result.success) {
+                                // 登录成功：跳转首页
+                                window.location.href = result.redirectUrl;
+                            } else {
+                                // 登录失败：弹窗提示，保留在原页面
+                                alert(result.msg);
+                            }
+                        } catch (e) {
+                            alert("登录响应解析失败，请重试！");
+                        }
+                    } else {
+                        alert("登录请求失败，HTTP状态码：" + xhr.status);
+                    }
+                }
+            };
+
+            // 捕获请求异常
+            xhr.onerror = function() {
+                alert("网络错误！登录请求失败");
+            };
+
+            xhr.send(params);
+
+            // 阻止表单默认提交
+            return false;
+        }
+
+        // 页面加载完成后初始化
+        window.onload = function() {
+            // 初始显示密码登录
+            switchLoginType("password");
+        };
+    </script>
+</head>
+<body>
+<div class="platform-title">班级学习社区平台</div>
+<div class="login-container">
+    <h2 style="text-align: center; margin-bottom: 10px;">用户登录</h2>
+    <!-- 管理员登录入口 -->
+    <div style="text-align: center; margin-bottom: 20px;">
+        <a href="adminSignin.html" style="color: #ff4444; font-size: 13px; text-decoration: none; border: 1px solid #ff4444; padding: 5px 15px; border-radius: 4px; display: inline-block;">
+            🔐 管理员登录
+        </a>
+    </div>
+    <!-- 表单提交调用submitLogin，阻止默认提交 -->
+    <form onsubmit="return submitLogin()">
+        账号：<input type="text" id="userID" name="userID" placeholder="请输入手机号或管理员账号"><br><br>
+
+        <!-- 密码登录区域 -->
+        <div id="pwdDiv">
+            密码：<input type="password" id="userPassword" name="userPassword" placeholder="请输入登录密码"><br><br>
+        </div>
+
+        <!-- 验证码登录区域 -->
+        <div id="codeDiv" style="display: none;">
+            验证码：<input type="text" id="code" name="code" placeholder="请输入6位验证码" maxlength="6"><br><br>
+            <button type="button" id="sendCodeBtn" onclick="sendLoginCode()">发送验证码</button>
+        </div>
+
+        <!-- 登录方式选择 -->
+        <div class="radio-group">
+            <input type="radio" name="loginType" value="password" checked onclick="switchLoginType('password')"> 密码登录
+            <input type="radio" name="loginType" value="code" onclick="switchLoginType('code')"> 验证码登录
+        </div><br>
+
+        <input type="submit" value="登录" style="width: 100%;">
+    </form>
+    <!-- 修正注册页路径（大小写统一） -->
+    <a href="SignupOrdinaryUser.html" class="link">没有账号？点击注册</a>
+    <a href="adminSignin.html" class="link" style="color: #ff4444; font-weight: bold;">🔐 管理员登录入口 →</a>
+</div>
+</body>
+</html>

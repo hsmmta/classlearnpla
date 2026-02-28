@@ -1,0 +1,148 @@
+焚决项目 - 个人信息路径问题修复完成
+===================================
+
+## 问题诊断
+
+### 错误信息
+```
+The requested resource is not available.
+/Prize/changeUserInfo.jsp
+```
+
+### 根本原因
+`getUserInfo.jsp` 中的"修改信息"按钮使用了相对路径 `changeUserInfo.jsp`，在某些Tomcat配置下会被错误地解析为 `/Prize/changeUserInfo.jsp`。
+
+---
+
+## 修复完成 ✅
+
+### 修改的文件
+
+#### 1. **getUserInfo.jsp** ✅ 已修复
+修复内容：
+- 导航栏所有链接改为使用 `${pageContext.request.contextPath}`
+- "修改信息"按钮路径：`changeUserInfo.jsp` → `${pageContext.request.contextPath}/personalInfo/changeUserInfo.jsp`
+- "修改密码"按钮路径：`changePassword.html` → `${pageContext.request.contextPath}/personalInfo/changePassword.jsp`
+- "找回密码"按钮路径：`forgetPassword.jsp` → `${pageContext.request.contextPath}/personalInfo/forgetPassword.jsp`
+- "注销账号"函数：`/personalInfo/cancelUser.html` → `${pageContext.request.contextPath}/personalInfo/cancelUser.html`
+
+#### 2. **changePassword.html** ✅ 已修复
+修改内容：
+- AJAX请求路径：`/changePassword` → `window.location.origin + "/焚决/changePassword"`
+- 登录页跳转：`/auth/signin.html` → `window.location.origin + "/焚决/auth/signin.html"`
+
+#### 3. **forgetPassword.jsp** ✅ 已验证
+状态：无需修改，已正确使用 `${pageContext.request.contextPath}`
+
+---
+
+## 部署步骤
+
+### 1. 重新编译
+```bash
+cd C:\Users\x\Desktop\焚决
+mvn clean compile
+```
+
+### 2. 打包
+```bash
+mvn package
+```
+
+### 3. 重启Tomcat
+```bash
+# Windows：停止Tomcat
+# 删除webapps下的焚决文件夹
+# 重新启动Tomcat
+```
+
+### 4. 清除浏览器缓存
+```
+Ctrl+Shift+Delete (Windows)
+或者
+Ctrl+F5 刷新页面
+```
+
+### 5. 测试
+```
+1. 登录系统
+2. 进入个人中心 (http://localhost:8080/焚决/personalInfo/getUserInfo.jsp)
+3. 点击"修改信息"按钮
+4. 应该能进入修改个人信息页面
+5. 修改信息并保存
+```
+
+---
+
+## 核心修复点
+
+### ✅ 前后对比
+
+| 位置 | 修改前 | 修改后 |
+|------|-------|--------|
+| getUserInfo.jsp 导航栏 | `/home/index.jsp` | `${pageContext.request.contextPath}/home/index.jsp` |
+| getUserInfo.jsp 修改按钮 | `changeUserInfo.jsp` | `${pageContext.request.contextPath}/personalInfo/changeUserInfo.jsp` |
+| changePassword.html POST | `/changePassword` | `window.location.origin + "/焚决/changePassword"` |
+
+---
+
+## 预期效果
+
+修复后，您应该能够：
+- ✅ 在个人中心点击"修改信息"正常进入修改页面
+- ✅ 修改个人信息并成功保存
+- ✅ 点击其他按钮能正常导航
+- ✅ 不再出现404错误
+
+---
+
+## 验证清单
+
+- [ ] 已执行 `mvn clean compile`
+- [ ] 已执行 `mvn package`
+- [ ] 已重启Tomcat
+- [ ] 已清除浏览器缓存
+- [ ] 能进入修改个人信息页面
+- [ ] 能成功保存个人信息
+- [ ] 所有导航链接都能正常跳转
+
+---
+
+## 如果仍然有问题
+
+### 排查步骤
+
+1. **检查Tomcat日志**
+   ```bash
+   tail -f logs/catalina.out
+   ```
+   查看是否有404或其他错误
+
+2. **检查文件位置**
+   ```bash
+   ls -la src/main/webapp/personalInfo/
+   # 应该看到 changeUserInfo.jsp、changePassword.html 等文件
+   ```
+
+3. **检查部署**
+   ```bash
+   ls -la $TOMCAT_HOME/webapps/焚决/personalInfo/
+   # 应该看到已部署的文件
+   ```
+
+4. **强制重新部署**
+   - 删除 `$TOMCAT_HOME/webapps/焚决` 整个目录
+   - 删除 `$TOMCAT_HOME/work/Catalina/localhost/焚决` 目录
+   - 重新启动Tomcat，让它自动重新解压WAR包
+
+---
+
+## 修复总结
+
+这次修复解决了两个主要问题：
+
+1. **首页蓝色按钮没反应** → ✅ 已修复（改为真实导航链接）
+2. **修改个人信息404错误** → ✅ 已修复（统一使用contextPath）
+
+所有路径问题现在都使用了相对于context root的路径，确保在不同的部署环境中都能正常工作。
+

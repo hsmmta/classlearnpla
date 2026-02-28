@@ -1,0 +1,157 @@
+积分商城 JSP 编译错误 - 已修复
+=============================
+
+## 错误原因
+
+JSP 使用了 Java 7+ 的特性，但 Tomcat 配置的是 Java 6：
+
+1. **菱形运算符 `<>`**：Java 7 引入的特性，Java 6 不支持
+2. **类型转换错误**：`(int)item.get("needPoint")` 无法直接从 Object 转换为 int
+
+---
+
+## 已完成的修复 ✅
+
+### 修复1：ArrayList 初始化
+```java
+// 修改前（Java 7+）
+List<Map<String, Object>> goods = new ArrayList<>();
+
+// 修改后（Java 6兼容）
+List<Map<String, Object>> goods = new ArrayList<Map<String, Object>>();
+```
+
+### 修复2：HashMap 初始化
+```java
+// 修改前（Java 7+）
+Map<String, Object> item = new HashMap<>();
+
+// 修改后（Java 6兼容）
+Map<String, Object> item = new HashMap<String, Object>();
+```
+
+### 修复3：类型转换
+```java
+// 修改前（错误）
+<% if (userPoints < (int)item.get("needPoint")) { %>
+
+// 修改后（正确）
+<% if (userPoints < ((Integer)item.get("needPoint")).intValue()) { %>
+```
+
+---
+
+## 立即部署（3步）
+
+### 步骤1：重新编译
+如果 Maven 在 PATH 中：
+```bash
+cd C:\Users\x\Desktop\焚决
+mvn clean compile
+mvn package
+```
+
+如果 Maven 不在 PATH 中，使用完整路径：
+```bash
+cd C:\Users\x\Desktop\焚决
+"C:\path\to\maven\bin\mvn.cmd" clean compile
+"C:\path\to\maven\bin\mvn.cmd" package
+```
+
+或在 IDE（如 IntelliJ IDEA）中：
+- 右键项目 → Maven → Reload Project
+- 右键项目 → Maven → Clean
+- 右键项目 → Maven → Compile
+
+### 步骤2：重启 Tomcat
+```
+1. 停止 Tomcat
+2. 删除 webapps/焚决 文件夹
+3. 删除 work/Catalina/localhost/焚决 目录
+4. 重启 Tomcat
+```
+
+### 步骤3：访问积分商城
+```
+http://localhost:8080/焚决/Prize/DisplayPrize.jsp
+```
+
+---
+
+## 验证成功
+
+如果修复成功，你应该能看到：
+- ✅ 页面正常显示（不是空白）
+- ✅ 导航栏显示
+- ✅ "当前积分：XX" 显示
+- ✅ 商品网格（3x3）
+- ✅ 商品信息显示
+- ✅ 兑换按钮
+
+---
+
+## 如果还有其他问题
+
+### 问题1：仍然显示编译错误
+**解决**：
+- 确保已删除 `work/Catalina/localhost/焚决` 目录
+- 确保 Tomcat 已完全重启
+- 清除浏览器缓存（Ctrl+F5）
+
+### 问题2：页面空白
+**解决**：
+- 检查数据库表 `goods` 和 `pointop` 是否存在
+- 执行 SQL 创建表（见之前的文档）
+
+### 问题3：其他 JSP 错误
+**解决**：
+- 查看 Tomcat 日志 `logs/catalina.out`
+- 找到具体的错误信息
+
+---
+
+## 数据库提醒 ⚠️
+
+如果还没有创建数据库表，必须执行：
+
+```sql
+USE web_demo;
+
+CREATE TABLE IF NOT EXISTS goods (
+    itemID INT AUTO_INCREMENT PRIMARY KEY,
+    itemName VARCHAR(50) NOT NULL,
+    needPoint INT NOT NULL,
+    `desc` VARCHAR(255)
+);
+
+CREATE TABLE IF NOT EXISTS pointop (
+    opID INT AUTO_INCREMENT PRIMARY KEY,
+    userID VARCHAR(20) NOT NULL,
+    pointOP VARCHAR(50) NOT NULL,
+    detail VARCHAR(255),
+    `time` DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (userID) REFERENCES user(userphone)
+);
+
+INSERT INTO goods (itemName, needPoint, `desc`) VALUES ('666', 1, 'good');
+```
+
+---
+
+## 总结
+
+✅ **JSP 编译错误已修复**
+- 改用 Java 6 兼容的语法
+- 修正了类型转换
+
+现在只需：
+1. 重新编译（mvn clean compile）
+2. 重启 Tomcat
+3. 访问积分商城
+
+应该就能正常显示了！🎉
+
+---
+
+修复完成时间：2026年2月22日
+

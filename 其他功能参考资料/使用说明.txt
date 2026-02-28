@@ -1,0 +1,6 @@
+1.数据库的设计需要与报告里面一致，因此相应的注册界面需要增加相关内容以供用户填写，主要应该就是userphone改成userID，还有增加gender和studentID
+2.如果报告中有对数据库的命名，需要在DBUtil(数据库连接)中修改相关内容
+3.普通用户登录网址使用  http://www.localhost:8080/auth/signin.html    最好使用无痕浏览窗口打开，管理员使用http://www.localhost:8080/Administrator/signin.html
+4.右侧maven中需要同步所有maven项目以下载所需依赖项
+5.记得去除所有疑似ai生成的说明和标签
+6.其他细节修改保持与报告一致即可

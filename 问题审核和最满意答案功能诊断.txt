@@ -1,0 +1,258 @@
+问题审核和最满意答案功能 - 修复诊断
+==================================
+
+## 问题1：管理员看不到待审核的问题
+
+### 诊断步骤
+
+#### 1. 检查是否有待审核的问题
+```sql
+USE web_demo;
+SELECT * FROM question WHERE questionState = '待审核';
+```
+
+如果查询结果为空，说明用户提交的问题没有被保存为"待审核"状态。
+
+#### 2. 检查问题提交是否成功
+用户提交问题后应该看到提示信息。如果没有看到，可能问题没有成功保存。
+
+#### 3. 检查 AuditQuestion.jsp 是否能访问
+访问：`/discussion/audit`
+
+如果显示"无权限"，说明：
+- 用户没有以管理员身份登录
+- Session 中的 `userType` 不是 "admin"
+
+#### 4. 检查 AuditQuestionServlet 是否工作
+```
+访问 /discussion/audit 后，应该看到：
+- 如果有待审核问题：显示问题表格
+- 如果没有待审核问题：显示"没有待审核的问题。"
+```
+
+### 修复方案
+
+#### 修复1：确保问题被正确保存为"待审核"
+检查 AskQuestionServlet 第44行是否设置了状态：
+```java
+pstmt.setString(4, userID);  // 验证userID
+pstmt.setString(7, "待审核");  // 确保这行存在
+```
+
+#### 修复2：修改 AuditQuestion.jsp 中的链接
+原来的链接：`/discussion/view_content?id=...`（错误，不存在的路由）
+修改后的链接：`/discussion/view?id=...`（正确，对应 ViewQuestionServlet）
+
+**已修复：✅**
+
+---
+
+## 问题2：点击"设为最满意答案"后报404
+
+### 错误信息分析
+
+```
+message /discussion/viewQuestion
+description The requested resource is not available.
+```
+
+### 原因分析
+
+这个错误表示：
+1. 用户试图访问 `/discussion/viewQuestion` 路由
+2. 但这个路由不存在或无法正确处理
+
+### 诊断
+
+检查各个相关的路由：
+```
+/discussion/view          → ViewQuestionServlet（✅ 正确）
+/discussion/setBestAnswer → SetBestAnswerServlet（✅ 正确）
+/discussion/viewQuestion  → 不存在（❌ 错误）
+```
+
+### 修复步骤
+
+1. ✅ 已修复 AuditQuestion.jsp 中的链接
+2. 确保 SetBestAnswerServlet 被正确编译
+3. 验证 ViewQuestionServlet 可以正确访问
+
+---
+
+## 快速排查清单
+
+### 排查1：验证待审核问题是否存在
+```sql
+SELECT COUNT(*) FROM question WHERE questionState = '待审核';
+```
+
+预期结果：应该有 > 0 的问题（如果用户提交过的话）
+
+### 排查2：验证问题提交是否成功
+```sql
+SELECT questionID, questionTitle, questionState, creationTime
+FROM question
+ORDER BY creationTime DESC
+LIMIT 5;
+```
+
+应该看到最新提交的问题，状态为"待审核"
+
+### 排查3：测试管理员访问审核页面
+```
+访问：http://localhost:8080/焚决/discussion/audit
+```
+
+应该看到：
+- 提示"无权限" → 说明没有以管理员身份登录
+- 问题表格 → 说明有待审核的问题
+- "没有待审核的问题。" → 说明没有待审核的问题（但至少访问成功了）
+
+### 排查4：测试设置最满意答案
+1. 以提问者身份查看自己的问题
+2. 在某个回答旁应该看到"设为最满意答案"按钮
+3. 点击按钮
+4. 应该弹出确认对话框
+5. 点击"确定"后，页面应该跳转或刷新
+6. 应该看到"⭐ 最满意答案"标记
+
+---
+
+## 完整修复清单
+
+### 已修复 ✅
+- [x] AuditQuestion.jsp 第66行：修改链接从 `/discussion/view_content` 改为 `/discussion/view`
+- [x] ViewQuestion.jsp：确保路由和按钮正确
+
+### 需要验证 ⏳
+- [ ] 用户能否成功发布问题
+- [ ] 问题是否被保存为"待审核"状态
+- [ ] 管理员能否访问审核页面看到待审核的问题
+- [ ] 点击"设为最满意答案"按钮是否能成功
+- [ ] 回答者是否获得5积分
+
+---
+
+## 测试方案
+
+### 测试1：完整的问题审核流程
+```
+1. 普通用户A登录
+2. 发布一个问题
+3. 页面显示"问题已提交审核"
+4. 普通用户A查看问题列表
+   → 问题不应该显示（因为状态是"待审核"）
+5. 管理员B登录
+6. 访问 /discussion/audit
+   → 应该看到用户A提交的问题
+7. 点击"查看"按钮
+   → 能看到问题详情
+8. 点击"通过"按钮
+   → 问题状态变为"审核通过"
+9. 普通用户A重新查看问题列表
+   → 问题应该显示
+10. 用户C回答问题
+11. 用户A查看自己的问题
+    → 应该看到"设为最满意答案"按钮
+12. 用户A点击"设为最满意答案"
+    → 弹出确认对话框
+13. 用户A点击"确定"
+    → 设置成功，显示"⭐ 最满意答案"标记
+    → 用户C获得5积分
+```
+
+### 测试2：边界情况
+```
+1. 非提问者查看问题
+   → 不应该看到"设为最满意答案"按钮
+2. 已设置最满意答案的问题
+   → 所有按钮都应该消失
+3. 提问者查看自己的回答
+   → 自己的回答不应该有"设为最满意答案"按钮
+```
+
+---
+
+## 部署步骤
+
+### 步骤1：编译
+```bash
+cd C:\Users\x\Desktop\焚决
+mvn clean
+mvn compile
+mvn package
+```
+
+### 步骤2：重启 Tomcat
+```
+1. 停止 Tomcat
+2. 删除 webapps/焚决
+3. 删除 work/Catalina/localhost/焚决
+4. 重启 Tomcat
+```
+
+### 步骤3：清除浏览器缓存
+```
+Ctrl + Shift + Delete
+```
+
+### 步骤4：测试
+```
+访问：http://localhost:8080/焚决/discussion/audit
+```
+
+---
+
+## SQL 查询辅助
+
+### 查看所有未审核的问题
+```sql
+SELECT
+    q.questionID,
+    q.questionTitle,
+    q.questionState,
+    q.creationTime,
+    u.userName
+FROM question q
+LEFT JOIN user u ON q.userID = u.userphone
+WHERE q.questionState = '待审核'
+ORDER BY q.creationTime DESC;
+```
+
+### 查看所有已设置最满意答案的问题
+```sql
+SELECT
+    q.questionID,
+    q.questionTitle,
+    q.bestAnswerID,
+    qc.userID as answerOwner,
+    u.userName
+FROM question q
+LEFT JOIN question_comment qc ON q.bestAnswerID = qc.commentID
+LEFT JOIN user u ON qc.userID = u.userphone
+WHERE q.bestAnswerID IS NOT NULL;
+```
+
+---
+
+## 总结
+
+### 已修复的问题 ✅
+1. AuditQuestion.jsp 中的链接错误：`/discussion/view_content` → `/discussion/view`
+
+### 需要验证的问题
+1. 用户提交的问题是否被保存为"待审核"状态
+2. 管理员是否能看到待审核的问题
+3. 设置最满意答案的功能是否正常工作
+
+### 下一步操作
+1. 编译部署
+2. 重启 Tomcat
+3. 进行完整的测试流程
+4. 验证所有功能正常
+
+---
+
+实现状态：✅ 已修复 AuditQuestion.jsp 的链接错误
+待验证：用户提交问题是否被正确保存，管理员是否能看到待审核问题
+

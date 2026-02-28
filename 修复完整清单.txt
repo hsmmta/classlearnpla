@@ -1,0 +1,103 @@
+资料区和讨论区功能修复完整清单
+====================================
+
+问题根本原因：
+1. Session属性名不一致 - 多个Servlet使用了错误的session属性名"phone"而不是"userID"
+2. JSP路径问题 - 使用了硬编码的绝对路径而不是相对于contextPath的路径
+3. 缺少会话检查 - 某些Servlet没有验证用户是否已登录
+4. 错误处理不足 - 数据库连接失败没有得到正确处理
+
+已修复的文件清单：
+==================
+
+[Java Servlet文件] - Session属性名修正 (phone → userID)
+---------------------------------------------------
+✅ 1. SearchMaterialServlet.java
+   - 添加会话检查
+   - 添加HttpSession import
+   - 改进错误处理
+
+✅ 2. DiscussionListServlet.java
+   - 添加会话检查
+   - 添加HttpSession import
+   - 改进错误处理
+
+✅ 3. AskQuestionServlet.java
+   - session.getAttribute("phone") → getAttribute("userID")
+
+✅ 4. UploadMaterialServlet.java
+   - session.getAttribute("phone") → getAttribute("userID")
+
+✅ 5. AddCommentServlet.java
+   - session.getAttribute("phone") → getAttribute("userID")
+
+✅ 6. AddQuestionCommentServlet.java
+   - session.getAttribute("phone") → getAttribute("userID")
+
+✅ 7. DeleteQuestionCommentServlet.java
+   - session.getAttribute("phone") → getAttribute("userID")
+
+✅ 8. LikeQuestionCommentServlet.java
+   - session.getAttribute("phone") → getAttribute("userID")
+
+✅ 9. EditMaterialServlet.java (两处修改)
+   - doGet方法: session.getAttribute("phone") → getAttribute("userID")
+   - doPost方法: session.getAttribute("phone") → getAttribute("userID")
+
+✅ 10. DeleteMaterialServlet.java
+   - session.getAttribute("phone") → getAttribute("userID")
+
+[JSP文件] - 路径修正
+---------------------------------------------------
+✅ 1. SearchMaterial.jsp
+   - form action: /material/search → ${pageContext.request.contextPath}/material/search
+   - 查看链接: /material/view → ${pageContext.request.contextPath}/material/view
+
+关键信息：
+==========
+
+1. LoginServlet设置的session属性：
+   session.setAttribute("userID", userID);      // 用户手机号
+   session.setAttribute("userName", userName);
+   session.setAttribute("classID", classID);
+   session.setAttribute("gender", gender);
+   session.setAttribute("studentID", studentID);
+   session.setAttribute("userEmail", userEmail);
+
+2. 所有其他Servlet应该使用getAttribute("userID")来获取用户ID
+
+3. 会话检查标准模式：
+   HttpSession session = request.getSession();
+   String userID = (String) session.getAttribute("userID");
+   if (userID == null) {
+       response.sendRedirect(request.getContextPath() + "/auth/signin.html");
+       return;
+   }
+
+4. 数据库连接检查标准模式：
+   conn = DBUtil.getConnection();
+   if (conn == null) {
+       throw new SQLException("无法获取数据库连接");
+   }
+
+预期效果：
+==========
+修复后，用户应该能够：
+✓ 成功进入资料区
+✓ 成功进入讨论区
+✓ 查看已发布的资料和讨论
+✓ 上传新资料
+✓ 提出新问题
+✓ 删除/编辑自己的内容
+✓ 发表和删除评论
+
+测试步骤：
+==========
+1. 使用有效凭证登录
+2. 点击导航栏"资料区"链接
+3. 点击导航栏"讨论区"链接
+4. 尝试上传资料或提出问题
+5. 验证能否查看、编辑、删除内容
+
+修复日期：2026年2月22日
+

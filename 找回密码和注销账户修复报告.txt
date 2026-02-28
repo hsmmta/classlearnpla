@@ -1,0 +1,177 @@
+焚决项目 - 找回密码和注销账户路径修复
+========================================
+
+## 问题诊断
+
+### 找回密码错误
+```
+HTTP Status 404 - /Prize/forgetPassword.jsp
+```
+
+### 注销账户路径问题
+`cancelUser.html` 中存在多个硬编码路径：
+- POST 请求：`/deleteAccount` (硬编码)
+- 返回个人中心：`/personalInfo/getUserInfo.jsp` (硬编码)
+- 跳转登录页：`/auth/signin.html` (硬编码)
+
+---
+
+## 修复完成 ✅
+
+### 修改的文件
+
+#### 1. **forgetPassword.jsp** ✅
+添加了登录状态检查：
+- 如果用户未登录，重定向到登录页面
+- 如果用户没有绑定邮箱，重定向到修改信息页面
+- 确保只有已登录且绑定邮箱的用户才能进入
+
+#### 2. **cancelUser.html** ✅
+修复了所有硬编码路径：
+- 添加 `getContextPath()` 函数动态获取应用根路径
+- AJAX POST 请求：`/deleteAccount` → `window.location.origin + contextPath + "/deleteAccount"`
+- 返回个人中心：`/personalInfo/getUserInfo.jsp` → 动态构建
+- 跳转登录页：`/auth/signin.html` → 动态构建
+
+---
+
+## 部署步骤
+
+### 步骤1：清理并重新编译（重要！）
+```bash
+cd C:\Users\x\Desktop\焚决
+mvn clean
+mvn compile
+mvn package
+```
+
+### 步骤2：重启Tomcat
+```
+1. 停止Tomcat
+2. 删除 webapps/焚决 文件夹
+3. 删除 work/Catalina/localhost/焚决 目录
+4. 重启Tomcat
+```
+
+### 步骤3：清除浏览器缓存
+```
+Ctrl+Shift+Delete（清除全部缓存）
+```
+
+---
+
+## 测试步骤
+
+### 测试找回密码
+1. 登录系统
+2. 进入个人中心
+3. 点击"找回密码"按钮
+4. **应该能进入找回密码页面** ✅（不显示404）
+5. 验证已绑定的邮箱地址显示正确
+6. 点击"获取验证码"应该能正常工作
+
+### 测试注销账户
+1. 登录系统
+2. 进入个人中心
+3. 点击"注销账号"按钮
+4. **应该能进入注销页面** ✅
+5. 输入密码
+6. 点击"确认注销"
+7. 应该能成功注销并重定向到登录页面
+
+---
+
+## 核心修复点
+
+### forgetPassword.jsp
+```jsp
+<%
+    // 新增：检查用户是否已登录和绑定邮箱
+    String userID = (String) session.getAttribute("userID");
+    String userEmail = (String) session.getAttribute("userEmail");
+
+    if (userID == null || userID.trim().isEmpty()) {
+        response.sendRedirect(request.getContextPath() + "/auth/signin.html");
+        return;
+    }
+
+    if (userEmail == null || userEmail.trim().isEmpty()) {
+        response.sendRedirect(request.getContextPath() + "/personalInfo/changeUserInfo.jsp?msg=请先绑定邮箱");
+        return;
+    }
+%>
+```
+
+### cancelUser.html
+```javascript
+// 新增：动态获取contextPath
+function getContextPath() {
+    var pathName = window.location.pathname;
+    var index = pathName.indexOf('/personalInfo');
+    if (index !== -1) {
+        return pathName.substring(0, index);
+    }
+    return '/焚决'; // 默认应用名
+}
+
+// 修改：使用动态路径而不是硬编码
+xhr.open("POST", window.location.origin + contextPath + "/deleteAccount", true);
+
+// 修改：返回按钮使用动态路径
+function goBack() {
+    var contextPath = getContextPath();
+    window.location.href = window.location.origin + contextPath + "/personalInfo/getUserInfo.jsp";
+}
+```
+
+---
+
+## 验证清单
+
+- [ ] 执行了 `mvn clean`
+- [ ] 执行了 `mvn compile`
+- [ ] 执行了 `mvn package`
+- [ ] 重启了Tomcat并删除了旧的webapps/焚决
+- [ ] 清除了浏览器缓存
+- [ ] 能进入"找回密码"页面 ✅
+- [ ] 能进入"注销账户"页面 ✅
+- [ ] 能成功获取验证码 ✅
+- [ ] 能成功重置密码 ✅
+- [ ] 能成功注销账户 ✅
+
+---
+
+## 常见问题
+
+### Q：找回密码还是显示404？
+A：
+1. 确保执行了 `mvn clean`
+2. 确保删除了 `webapps/焚决` 整个文件夹
+3. 确保已登录且绑定了邮箱
+4. 强制清除浏览器缓存
+
+### Q：注销账户点击没反应？
+A：
+1. 打开浏览器开发者工具（F12）
+2. 查看Console中是否有JavaScript错误
+3. 查看Network中POST请求是否返回200
+4. 检查Tomcat日志
+
+### Q：跳转到登录页失败？
+A：
+1. 检查应用是否正确部署
+2. 查看contextPath是否正确（可能不是/焚决）
+3. 检查Tomcat日志
+
+---
+
+## 总结
+
+所有路径相关的问题都已修复：
+- ✅ forgetPassword.jsp 添加了登录验证
+- ✅ cancelUser.html 的所有硬编码路径改为动态路径
+- ✅ 所有AJAX请求都使用动态构建的路径
+- ✅ 所有页面跳转都使用完整的contextPath
+
+部署后应该能正常使用所有功能！
+
