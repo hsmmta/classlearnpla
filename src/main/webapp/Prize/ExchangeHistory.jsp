@@ -2,6 +2,7 @@
 <%@ page import="java.sql.*" %>
 <%@ page import="java.util.*" %>
 <%@ page import="java.text.SimpleDateFormat" %>
+<%@ page import="org.example.util.DBUtil" %>
 <%
     // 检查用户是否已登录
     String userID = (String) session.getAttribute("userID");
@@ -15,8 +16,8 @@
 
     // 查询用户当前积分
     try {
-        Class.forName("com.mysql.cj.jdbc.Driver");
-        Connection conn = DriverManager.getConnection("jdbc:mysql://localhost:3306/web_demo?characterEncoding=utf8&allowPublicKeyRetrieval=true&useSSL=false", "root", "123456ks");
+        Connection conn = DBUtil.getConnection();
+        if (conn == null) throw new SQLException("数据库未连接");
         String sql = "SELECT points FROM points WHERE userID = ?";
         PreparedStatement pstmt = conn.prepareStatement(sql);
         pstmt.setString(1, userID);
@@ -34,8 +35,8 @@
     // 查询兑换历史
     List<Map<String, Object>> history = new ArrayList<Map<String, Object>>();
     try {
-        Class.forName("com.mysql.cj.jdbc.Driver");
-        Connection conn = DriverManager.getConnection("jdbc:mysql://localhost:3306/web_demo?characterEncoding=utf8&allowPublicKeyRetrieval=true&useSSL=false", "root", "123456ks");
+        Connection conn = DBUtil.getConnection();
+        if (conn == null) throw new SQLException("数据库未连接");
         String sql = "SELECT opID, pointOP, detail, `time` FROM pointop WHERE userID = ? ORDER BY `time` DESC";
         PreparedStatement pstmt = conn.prepareStatement(sql);
         pstmt.setString(1, userID);
@@ -62,6 +63,8 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <link rel="stylesheet" href="<%= request.getContextPath() %>/css/mobile.css">
     <title>兑换历史</title>
     <style>
         * {

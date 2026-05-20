@@ -14,6 +14,8 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <link rel="stylesheet" href="<%= request.getContextPath() %>/css/mobile.css">
     <title>查看资料 - 班级学习社区平台</title>
     <style>
         body {
@@ -52,6 +54,24 @@
             white-space: pre-wrap;
             padding-bottom: 30px;
             border-bottom: 1px solid #eee;
+        }
+        .pdf-viewer {
+            width: 100%;
+            min-height: 800px;
+            border: 1px solid #ddd;
+            margin-bottom: 30px;
+        }
+        .pdf-download-btn {
+            display: inline-block;
+            padding: 10px 20px;
+            background-color: #5cb85c;
+            color: white;
+            text-decoration: none;
+            border-radius: 4px;
+            margin-bottom: 20px;
+        }
+        .pdf-download-btn:hover {
+            background-color: #4cae4c;
         }
         .comment-section {
             margin-top: 30px;
@@ -110,10 +130,25 @@
             text-decoration: none;
             font-size: 12px;
         }
+        .back-btn {
+            display: inline-block;
+            margin-bottom: 20px;
+            padding: 8px 16px;
+            background-color: #6c757d;
+            color: white;
+            text-decoration: none;
+            border-radius: 4px;
+            font-size: 14px;
+            transition: background-color 0.3s;
+        }
+        .back-btn:hover {
+            background-color: #5a6268;
+        }
     </style>
 </head>
 <body>
     <div class="container">
+        <a href="${pageContext.request.contextPath}/material/search" class="back-btn">← 返回资料区</a>
         <%
             Material material = (Material) request.getAttribute("material");
             List<Comment> comments = (List<Comment>) request.getAttribute("comments");
@@ -126,10 +161,17 @@
             <div class="material-meta">
                 <span><strong>上传者:</strong> <%= maskPhoneNumber(material.getUserID()) %></span>
                 <span><strong>上传时间:</strong> <%= new java.text.SimpleDateFormat("yyyy-MM-dd HH:mm").format(material.getUploadTime()) %></span>
+                <span><strong>资料类型:</strong> <%= "pdf".equals(material.getMaterialType()) ? "PDF文件" : "文本内容" %></span>
             </div>
-            <div class="material-content">
-                <%= material.getMaterialContent() %>
-            </div>
+
+            <% if ("pdf".equals(material.getMaterialType()) && material.getFilePath() != null) { %>
+                <a href="${pageContext.request.contextPath}/material/downloadPdf?path=<%= material.getFilePath() %>" class="pdf-download-btn" target="_blank">下载/查看PDF</a>
+                <iframe src="${pageContext.request.contextPath}/material/downloadPdf?path=<%= material.getFilePath() %>" class="pdf-viewer"></iframe>
+            <% } else { %>
+                <div class="material-content">
+                    <%= material.getMaterialContent() %>
+                </div>
+            <% } %>
 
             <div class="comment-section">
                 <h3>发表评论</h3>

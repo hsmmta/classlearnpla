@@ -37,7 +37,7 @@ public class MaterialManagementServlet extends HttpServlet {
 
         try {
             conn = DBUtil.getConnection();
-            String sql = "SELECT materialID, materialTitle, materialSubject, uploadTime, materialState FROM material WHERE userID = ? ORDER BY uploadTime DESC";
+            String sql = "SELECT materialID, materialTitle, materialSubject, uploadTime, materialState, materialType FROM material WHERE userID = ? ORDER BY uploadTime DESC";
             pstmt = conn.prepareStatement(sql);
             pstmt.setString(1, userID);
             rs = pstmt.executeQuery();
@@ -49,6 +49,7 @@ public class MaterialManagementServlet extends HttpServlet {
                 material.setMaterialSubject(rs.getString("materialSubject"));
                 material.setUploadTime(rs.getTimestamp("uploadTime"));
                 material.setMaterialState(rs.getString("materialState"));
+                material.setMaterialType(rs.getString("materialType"));
                 materials.add(material);
             }
         } catch (SQLException e) {

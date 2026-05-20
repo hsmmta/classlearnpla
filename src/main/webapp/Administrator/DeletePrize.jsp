@@ -5,7 +5,9 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <title>学习社区 · 管理后台 - 奖品下架确认</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <link rel="stylesheet" href="<%= request.getContextPath() %>/css/mobile.css">
+    <title>学习社区 · 管理后台 - 商品下架确认</title>
     <style>
         * {
             margin: 0;
@@ -89,7 +91,7 @@
             text-align: center;
         }
 
-        /* 奖品信息展示 */
+        /* 商品信息展示 */
         .prize-info {
             margin-bottom: 30px;
             border: 1px solid rgba(255, 255, 255, 0.1);
@@ -172,7 +174,7 @@
     </div>
     <div class="nav-center">
         <a href="index.jsp">首页</a>
-        <a href="ManagePrize.jsp" class="active">奖品管理</a>
+        <a href="ManagePrize.jsp" class="active">商品管理</a>
         <a href="#">用户管理</a>
         <a href="#">资料管理</a>
         <a href="#">问题管理</a>
@@ -187,16 +189,16 @@
 <!-- 主内容区 - 下架确认逻辑 -->
 <div class="main-content">
     <div class="confirm-card">
-        <h2 class="page-title">奖品下架确认</h2>
+        <h2 class="page-title">商品下架确认</h2>
         <%
-        // 1. 获取URL传递的奖品ID
+        // 1. 获取URL传递的商品ID
         String goodsID = request.getParameter("goodsID");
-        // 2. 校验奖品ID是否为空
+        // 2. 校验商品ID是否为空
         if (goodsID == null || goodsID.trim().isEmpty()) {
         %>
-        <div class="error-tip">错误：未获取到奖品ID，无法执行下架操作！</div>
+        <div class="error-tip">错误：未获取到商品ID，无法执行下架操作！</div>
         <div class="btn-group">
-            <a href="ManagePrize.jsp" class="btn-cancel">返回奖品列表</a>
+            <a href="ManagePrize.jsp" class="btn-cancel">返回商品列表</a>
         </div>
         <%
         return;
@@ -218,19 +220,19 @@
         <div class="error-tip">数据库连接失败，下架操作失败！</div>
         <%
         } else {
-        // 删除SQL：根据goodsID删除奖品
+        // 删除SQL：根据goodsID删除商品
         String delSql = "DELETE FROM goodslist WHERE goodsID = ?";
         pstmt = conn.prepareStatement(delSql);
         pstmt.setString(1, goodsID);
         int rows = pstmt.executeUpdate();
         if (rows > 0) {
-        // 删除成功：弹窗提示并跳转回奖品列表
-        response.getWriter().write("<script>alert('奖品下架成功！'); window.location.href='ManagePrize.jsp';</script>");
+        // 删除成功：弹窗提示并跳转回商品列表
+        response.getWriter().write("<script>alert('商品下架成功！'); window.location.href='ManagePrize.jsp';</script>");
         return;
         } else {
-        // 删除失败：无此奖品
+        // 删除失败：无此商品
         %>
-        <div class="error-tip">下架失败：未找到该奖品（可能已被下架）！</div>
+        <div class="error-tip">下架失败：未找到该商品（可能已被下架）！</div>
         <%
         }
         }
@@ -243,42 +245,42 @@
         DBUtil.close(conn, pstmt);
         }
         } else {
-        // ------------- 首次访问：查询并展示奖品详情 -------------
+        // ------------- 首次访问：查询并展示商品详情 -------------
         try {
         conn = DBUtil.getConnection();
         if (conn == null) {
         %>
-        <div class="error-tip">数据库连接失败，无法获取奖品信息！</div>
+        <div class="error-tip">数据库连接失败，无法获取商品信息！</div>
         <div class="btn-group">
-            <a href="ManagePrize.jsp" class="btn-cancel">返回奖品列表</a>
+            <a href="ManagePrize.jsp" class="btn-cancel">返回商品列表</a>
         </div>
         <%
         return;
         }
-        // 查询奖品详情SQL
+        // 查询商品详情SQL
         String selectSql = "SELECT goodsName, goodsType, needPoints, currentNum FROM goodslist WHERE goodsID = ?";
         pstmt = conn.prepareStatement(selectSql);
         pstmt.setString(1, goodsID);
         rs = pstmt.executeQuery();
         if (rs.next()) {
-        // 获取奖品信息
+        // 获取商品信息
         String goodsName = rs.getString("goodsName");
         String goodsType = rs.getString("goodsType");
         int needPoints = rs.getInt("needPoints");
         int currentNum = rs.getInt("currentNum");
         %>
-        <!-- 展示奖品详细信息 -->
+        <!-- 展示商品详细信息 -->
         <div class="prize-info">
             <div class="info-item">
-                <span class="info-label">奖品ID：</span>
+                <span class="info-label">商品ID：</span>
                 <span class="info-value"><%= goodsID %></span>
             </div>
             <div class="info-item">
-                <span class="info-label">奖品名称：</span>
+                <span class="info-label">商品名称：</span>
                 <span class="info-value"><%= goodsName %></span>
             </div>
             <div class="info-item">
-                <span class="info-label">奖品类型：</span>
+                <span class="info-label">商品类型：</span>
                 <span class="info-value"><%= goodsType %></span>
             </div>
             <div class="info-item">
@@ -300,20 +302,20 @@
         </form>
         <%
         } else {
-        // 未查询到奖品
+        // 未查询到商品
         %>
-        <div class="error-tip">未找到奖品ID为【<%= goodsID %>】的奖品！</div>
+        <div class="error-tip">未找到商品ID为【<%= goodsID %>】的商品！</div>
         <div class="btn-group">
-            <a href="ManagePrize.jsp" class="btn-cancel">返回奖品列表</a>
+            <a href="ManagePrize.jsp" class="btn-cancel">返回商品列表</a>
         </div>
         <%
         }
         } catch (SQLException e) {
         e.printStackTrace();
         %>
-        <div class="error-tip">获取奖品信息失败：<%= e.getMessage() %></div>
+        <div class="error-tip">获取商品信息失败：<%= e.getMessage() %></div>
         <div class="btn-group">
-            <a href="ManagePrize.jsp" class="btn-cancel">返回奖品列表</a>
+            <a href="ManagePrize.jsp" class="btn-cancel">返回商品列表</a>
         </div>
         <%
         } finally {

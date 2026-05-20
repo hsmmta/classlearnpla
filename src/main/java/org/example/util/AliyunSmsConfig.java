@@ -46,37 +46,17 @@ public class AliyunSmsConfig {
         return templateParam;
     }
 
+    /**
+     * 从环境变量 / .env 加载（见 .env.example）。
+     */
     public static AliyunSmsConfig fromEnv() {
-        String accessKeyId = requireEnv("ALIYUN_ACCESS_KEY_ID");
-        String accessKeySecret = requireEnv("ALIYUN_ACCESS_KEY_SECRET");
-        String signName = requireEnv("ALIYUN_SMS_SIGN_NAME");
-        String templateCode = requireEnv("ALIYUN_SMS_TEMPLATE_CODE");
-        String schemeName = optionalEnv("ALIYUN_SMS_SCHEME_NAME", "DefaultScheme");
-        String templateParam = optionalEnv("ALIYUN_SMS_TEMPLATE_PARAM", "{\"code\":\"${code}\",\"min\":\"5\"}");
-        return new AliyunSmsConfig(accessKeyId, accessKeySecret, signName, templateCode, schemeName, templateParam);
-    }
-
-    private static String requireEnv(String key) {
-        String value = readConfigValue(key);
-        if (value == null || value.trim().isEmpty()) {
-            throw new IllegalStateException("Missing required env: " + key);
-        }
-        return value.trim();
-    }
-
-    private static String optionalEnv(String key, String defaultValue) {
-        String value = readConfigValue(key);
-        if (value == null || value.trim().isEmpty()) {
-            return defaultValue;
-        }
-        return value.trim();
-    }
-
-    private static String readConfigValue(String key) {
-        String value = System.getProperty(key);
-        if (value == null || value.trim().isEmpty()) {
-            value = System.getenv(key);
-        }
-        return value;
+        return new AliyunSmsConfig(
+                EnvUtil.require("ALIYUN_ACCESS_KEY_ID"),
+                EnvUtil.require("ALIYUN_ACCESS_KEY_SECRET"),
+                EnvUtil.get("ALIYUN_SMS_SIGN_NAME", "速通互联验证码"),
+                EnvUtil.get("ALIYUN_SMS_TEMPLATE_CODE", "100001"),
+                EnvUtil.get("ALIYUN_SMS_SCHEME_NAME", "默认方案"),
+                EnvUtil.get("ALIYUN_SMS_TEMPLATE_PARAM", "{\"code\":\"##code##\",\"min\":\"5\"}")
+        );
     }
 }

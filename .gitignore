@@ -1,2 +1,43 @@
-# 项目排除路径
+# ========== 构建产物 ==========
 /target/
+/mobile/node_modules/
+/mobile/android/.gradle/
+/mobile/android/app/build/
+/mobile/android/build/
+/mobile/android/local.properties
+
+# ========== 文档 / 参考资料（非运行时代码）==========
+说明/
+其他功能参考资料/
+
+# ========== 根目录冗余与备份 ==========
+DisplayPrize.jsp
+pom_xml.xml
+部署指南.txt
+pom_xml.txt
+
+# ========== IDE ==========
+.idea/
+*.iml
+.vscode/
+*.swp
+*~
+
+# ========== 运行时上传（勿提交用户文件）==========
+src/main/webapp/uploads/
+
+# ========== 系统文件 ==========
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ========== 日志与本地配置（含密钥，切勿提交）==========
+*.log
+
+# 环境变量文件（仅提交 .env.example 模板）
+.env
+/.env
+.env.local
+.env.*.local
+!/.env.example
+mobile/.env

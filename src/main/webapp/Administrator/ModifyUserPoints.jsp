@@ -1,0 +1,372 @@
+<%@ page contentType="text/html;charset=UTF-8" language="java" %>
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <link rel="stylesheet" href="<%= request.getContextPath() %>/css/mobile.css">
+    <title>学习社区 · 管理后台 - 用户积分管理</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: "Microsoft YaHei", sans-serif;
+        }
+
+        body {
+            background-color: #12121a;
+            color: #ffffff;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* 顶部导航 */
+        .top-nav {
+            background-color: #1e1e2d;
+            padding: 15px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .nav-left .logo {
+            font-size: 18px;
+            font-weight: bold;
+            color: #0088ff;
+        }
+
+        .nav-center {
+            display: flex;
+            gap: 25px;
+        }
+
+        .nav-center a {
+            color: #cccccc;
+            text-decoration: none;
+            font-size: 14px;
+            transition: color 0.3s;
+        }
+
+        .nav-center a:hover {
+            color: #0088ff;
+        }
+
+        .nav-center a.active {
+            color: #0088ff;
+            font-weight: 500;
+        }
+
+        .nav-right a {
+            color: #cccccc;
+            text-decoration: none;
+            font-size: 14px;
+        }
+
+        /* 主内容区 */
+        .main-content {
+            flex: 1;
+            padding: 30px;
+        }
+
+        .page-title {
+            font-size: 20px;
+            font-weight: bold;
+            margin-bottom: 25px;
+            color: #ffffff;
+        }
+
+        /* 表单容器 */
+        .form-container {
+            width: 600px;
+            background-color: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            padding: 30px;
+            box-shadow: 0 0 16px rgba(0, 0, 0, 0.1);
+        }
+
+        .info-box {
+            background-color: rgba(0, 136, 255, 0.1);
+            border: 1px solid rgba(0, 136, 255, 0.2);
+            border-radius: 6px;
+            padding: 15px;
+            margin-bottom: 25px;
+            font-size: 13px;
+            color: #8ab4f8;
+        }
+
+        .form-item {
+            margin-bottom: 20px;
+        }
+
+        .form-label {
+            display: block;
+            font-size: 14px;
+            color: #cccccc;
+            margin-bottom: 8px;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 12px 15px;
+            background-color: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 6px;
+            color: #ffffff;
+            font-size: 14px;
+            outline: none;
+            transition: border-color 0.3s;
+        }
+
+        .form-input::placeholder {
+            color: #666666;
+        }
+
+        .form-input:focus {
+            border-color: #0088ff;
+            background-color: rgba(255, 255, 255, 0.12);
+        }
+
+        .radio-group {
+            display: flex;
+            gap: 25px;
+            margin-top: 10px;
+        }
+
+        .radio-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .radio-item input[type="radio"] {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+            accent-color: #0088ff;
+        }
+
+        .radio-item label {
+            font-size: 14px;
+            color: #cccccc;
+            cursor: pointer;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            background-color: #0088ff;
+            color: white;
+            font-size: 14px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+            margin-top: 5px;
+        }
+
+        .btn:hover {
+            background-color: #0077ee;
+        }
+
+        .btn:active {
+            transform: scale(0.98);
+        }
+
+        /* 当前积分展示 */
+        .current-points {
+            background-color: rgba(255, 152, 0, 0.1);
+            border: 1px solid rgba(255, 152, 0, 0.2);
+            border-radius: 6px;
+            padding: 20px;
+            margin-bottom: 25px;
+            text-align: center;
+        }
+
+        .current-points .label {
+            font-size: 14px;
+            color: #cccccc;
+            margin-bottom: 8px;
+        }
+
+        .current-points .value {
+            font-size: 28px;
+            font-weight: bold;
+            color: #ff9800;
+        }
+
+        /* 修改区域分隔线 */
+        .modify-section {
+            margin-top: 25px;
+            padding-top: 25px;
+            border-top: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        /* 红色星号样式 */
+        .required {
+            color: #ff4d4f;
+        }
+    </style>
+</head>
+<body>
+<!-- 顶部导航 -->
+<div class="top-nav">
+    <div class="nav-left">
+        <div class="logo">学习社区 · 管理后台</div>
+    </div>
+    <div class="nav-center">
+        <a href="index.jsp">首页</a>
+        <a href="${pageContext.request.contextPath}/material/audit">资料审核</a>
+        <a href="${pageContext.request.contextPath}/discussion/audit">问题审核</a>
+        <a href="ModifyUserPoints.jsp" class="active">用户积分管理</a>
+        <a href="ManagePrize.jsp">积分商品管理</a>
+        <a href="AddPrize.html">添加商品</a>
+    </div>
+    <div class="nav-right">
+        <a href="signin.html" onclick="return confirm('确定要退出登录吗？')">退出登录</a>
+    </div>
+</div>
+
+<!-- 主内容区 -->
+<div class="main-content">
+    <div class="page-title">用户积分管理</div>
+
+    <div class="form-container">
+        <div class="info-box">
+            <strong>提示：</strong>请先输入用户手机号查询当前积分，然后选择增加、减少或直接设置积分。
+        </div>
+
+        <!-- 查询区域 -->
+        <form id="queryForm">
+            <div class="form-item">
+                <label class="form-label">用户ID（手机号） <span class="required">*</span></label>
+                <input type="text" id="userID" name="userID" class="form-input" placeholder="输入用户手机号" required>
+            </div>
+            <button type="button" onclick="queryUserPoints()" class="btn">查询当前积分</button>
+        </form>
+
+        <!-- 修改区域（查询成功后显示） -->
+        <div id="modifySection" class="modify-section" style="display: none;">
+            <div class="current-points">
+                <div class="label">当前积分</div>
+                <div class="value" id="currentPoints">0</div>
+            </div>
+
+            <form onsubmit="return submitModifyPoints()">
+                <div class="form-item">
+                    <label class="form-label">操作类型 <span class="required">*</span></label>
+                    <div class="radio-group">
+                        <div class="radio-item">
+                            <input type="radio" id="operationAdd" name="operation" value="add" checked>
+                            <label for="operationAdd">增加积分</label>
+                        </div>
+                        <div class="radio-item">
+                            <input type="radio" id="operationSub" name="operation" value="subtract">
+                            <label for="operationSub">减少积分</label>
+                        </div>
+                        <div class="radio-item">
+                            <input type="radio" id="operationSet" name="operation" value="set">
+                            <label for="operationSet">设置积分</label>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-item">
+                    <label class="form-label">积分数量 <span class="required">*</span></label>
+                    <input type="number" id="pointAmount" name="pointAmount" class="form-input" placeholder="输入积分数量" min="1" required>
+                </div>
+
+                <div class="form-item">
+                    <label class="form-label">操作说明</label>
+                    <input type="text" id="reason" name="reason" class="form-input" placeholder="说明原因（可选）">
+                </div>
+
+                <button type="submit" class="btn">确认修改</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    var currentUserID = "";
+
+    function queryUserPoints() {
+        var userID = document.getElementById("userID").value.trim();
+        if (!userID) {
+            alert("请输入用户ID");
+            return;
+        }
+
+        currentUserID = userID;
+
+        var xhr = new XMLHttpRequest();
+        xhr.open("POST", "/queryUserPoints", true);
+        xhr.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
+
+        xhr.onreadystatechange = function() {
+            if (xhr.readyState === 4 && xhr.status === 200) {
+                try {
+                    var result = JSON.parse(xhr.responseText);
+                    if (result.success) {
+                        document.getElementById("currentPoints").innerText = result.points;
+                        document.getElementById("modifySection").style.display = "block";
+                    } else {
+                        alert(result.msg);
+                    }
+                } catch (e) {
+                    alert("响应解析失败");
+                }
+            }
+        };
+
+        xhr.send("userID=" + encodeURIComponent(userID));
+    }
+
+    function submitModifyPoints() {
+        var operation = document.querySelector('input[name="operation"]:checked').value;
+        var pointAmount = document.getElementById("pointAmount").value.trim();
+        var reason = document.getElementById("reason").value.trim();
+
+        if (!pointAmount || parseInt(pointAmount) < 1) {
+            alert("请输入有效的积分数量");
+            return false;
+        }
+
+        if (!confirm("确定要修改该用户的积分吗？")) {
+            return false;
+        }
+
+        var xhr = new XMLHttpRequest();
+        xhr.open("POST", "/modifyUserPoints", true);
+        xhr.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
+
+        xhr.onreadystatechange = function() {
+            if (xhr.readyState === 4 && xhr.status === 200) {
+                try {
+                    var result = JSON.parse(xhr.responseText);
+                    alert(result.msg);
+                    if (result.success) {
+                        queryUserPoints();
+                        document.getElementById("pointAmount").value = "";
+                        document.getElementById("reason").value = "";
+                    }
+                } catch (e) {
+                    alert("响应解析失败");
+                }
+            }
+        };
+
+        var params = "userID=" + encodeURIComponent(currentUserID) +
+                     "&operation=" + operation +
+                     "&pointAmount=" + pointAmount +
+                     "&reason=" + encodeURIComponent(reason);
+        xhr.send(params);
+
+        return false;
+    }
+</script>
+</body>
+</html>
+

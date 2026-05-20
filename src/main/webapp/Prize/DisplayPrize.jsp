@@ -47,7 +47,7 @@
     try {
         Class.forName("com.mysql.cj.jdbc.Driver");
         Connection conn = DriverManager.getConnection("jdbc:mysql://localhost:3306/web_demo?characterEncoding=utf8&allowPublicKeyRetrieval=true&useSSL=false", "root", "123456ks");
-        PreparedStatement countPstmt = conn.prepareStatement("SELECT COUNT(*) FROM goods");
+        PreparedStatement countPstmt = conn.prepareStatement("SELECT COUNT(*) FROM goodslist");
         ResultSet countRs = countPstmt.executeQuery();
         if (countRs.next()) {
             totalGoods = countRs.getInt(1);
@@ -57,7 +57,7 @@
 
         totalPages = (totalGoods + pageSize - 1) / pageSize;
         int offset = (currentPage - 1) * pageSize;
-        String sql = "SELECT itemID, itemName, needPoint, `desc` FROM goods LIMIT ? OFFSET ?";
+        String sql = "SELECT goodsID, goodsName, goodsType, needPoints, currentNum FROM goodslist LIMIT ? OFFSET ?";
         PreparedStatement pstmt = conn.prepareStatement(sql);
         pstmt.setInt(1, pageSize);
         pstmt.setInt(2, offset);
@@ -65,10 +65,11 @@
 
         while (rs.next()) {
             Map<String, Object> item = new HashMap<String, Object>();
-            item.put("itemID", rs.getInt("itemID"));
-            item.put("itemName", rs.getString("itemName"));
-            item.put("needPoint", rs.getInt("needPoint"));
-            item.put("desc", rs.getString("desc"));
+            item.put("goodsID", rs.getString("goodsID"));
+            item.put("goodsName", rs.getString("goodsName"));
+            item.put("goodsType", rs.getString("goodsType"));
+            item.put("needPoints", rs.getInt("needPoints"));
+            item.put("currentNum", rs.getInt("currentNum"));
             goods.add(item);
         }
         rs.close();
@@ -82,6 +83,8 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <link rel="stylesheet" href="<%= request.getContextPath() %>/css/mobile.css">
     <title>积分商城</title>
     <style>
         * {
@@ -273,13 +276,13 @@
             <% for (Map<String, Object> item : goods) { %>
                 <div class="goods-item">
                     <div class="goods-image">
-                        <img src="${pageContext.request.contextPath}/example.webp" alt="<%= item.get("itemName") %>">
+                        <img src="${pageContext.request.contextPath}/example.webp" alt="<%= item.get("goodsName") %>">
                     </div>
                     <div class="goods-info">
-                        <div class="goods-name"><%= item.get("itemName") %></div>
-                        <div class="goods-points">所需积分：<%= item.get("needPoint") %></div>
-                        <div class="goods-desc"><%= item.get("desc") %></div>
-                        <button class="exchange-btn" onclick="exchangeGoods(<%= item.get("itemID") %>, <%= item.get("needPoint") %>)" <% if (userPoints < ((Integer)item.get("needPoint")).intValue()) { %>disabled<% } %>>兑换</button>
+                        <div class="goods-name"><%= item.get("goodsName") %></div>
+                        <div class="goods-points">所需积分：<%= item.get("needPoints") %></div>
+                        <div class="goods-desc"><%= item.get("goodsType") != null ? item.get("goodsType") : "" %></div>
+                        <button class="exchange-btn" onclick="exchangeGoods('<%= item.get("goodsID") %>', <%= item.get("needPoints") %>)" <% if (userPoints < ((Integer)item.get("needPoints")).intValue()) { %>disabled<% } %>>兑换</button>
                     </div>
                 </div>
             <% } %>

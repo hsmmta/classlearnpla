@@ -4,6 +4,8 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <link rel="stylesheet" href="<%= request.getContextPath() %>/css/mobile.css">
     <title>编辑资料 - 班级学习社区平台</title>
     <style>
         body {
@@ -48,6 +50,13 @@
             height: 200px;
             resize: vertical;
         }
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #4a90e2;
+            box-shadow: 0 0 0 2px rgba(74, 144, 226, 0.2);
+        }
         .submit-btn {
             display: block;
             width: 100%;
@@ -60,15 +69,52 @@
             cursor: pointer;
             text-align: center;
         }
+        .submit-btn:hover {
+            background-color: #357abd;
+        }
+        .back-btn {
+            display: inline-block;
+            margin-bottom: 20px;
+            padding: 8px 16px;
+            background-color: #6c757d;
+            color: white;
+            text-decoration: none;
+            border-radius: 4px;
+            font-size: 14px;
+            transition: background-color 0.3s;
+        }
+        .back-btn:hover {
+            background-color: #5a6268;
+        }
+        .current-pdf-info {
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            padding: 12px;
+            margin-bottom: 10px;
+            color: #555;
+            font-size: 14px;
+        }
+        .current-pdf-info a {
+            color: #4a90e2;
+            text-decoration: none;
+        }
+        .current-pdf-info a:hover {
+            text-decoration: underline;
+        }
     </style>
 </head>
 <body>
 
     <div class="container">
+        <a href="${pageContext.request.contextPath}/material/manage" class="back-btn">&larr; 返回我的资料</a>
         <h2>编辑学习资料</h2>
         <% Material material = (Material) request.getAttribute("material");
-           if (material != null) { %>
-        <form action="${pageContext.request.contextPath}/material/edit" method="post">
+           if (material != null) {
+               String mType = material.getMaterialType();
+               if (mType == null) mType = "text";
+        %>
+        <form action="${pageContext.request.contextPath}/material/edit" method="post" enctype="multipart/form-data">
             <input type="hidden" name="materialID" value="<%= material.getMaterialID() %>">
             <div class="form-group">
                 <label for="materialTitle">资料标题</label>
@@ -85,8 +131,25 @@
                 </select>
             </div>
             <div class="form-group">
+                <label for="materialType">资料类型</label>
+                <select id="materialType" name="materialType" required onchange="toggleContentType()">
+                    <option value="text" <%= "text".equals(mType) ? "selected" : "" %>>文本内容</option>
+                    <option value="pdf" <%= "pdf".equals(mType) ? "selected" : "" %>>PDF文件</option>
+                </select>
+            </div>
+            <div class="form-group" id="textContentGroup" style="<%= "pdf".equals(mType) ? "display:none;" : "" %>">
                 <label for="materialContent">资料内容</label>
-                <textarea id="materialContent" name="materialContent" required><%= material.getMaterialContent() %></textarea>
+                <textarea id="materialContent" name="materialContent"><%= material.getMaterialContent() != null ? material.getMaterialContent() : "" %></textarea>
+            </div>
+            <div class="form-group" id="pdfFileGroup" style="<%= "pdf".equals(mType) ? "" : "display:none;" %>">
+                <% if ("pdf".equals(mType) && material.getFilePath() != null) { %>
+                <div class="current-pdf-info">
+                    当前已有PDF文件：<a href="${pageContext.request.contextPath}/material/downloadPdf?path=<%= material.getFilePath() %>" target="_blank">查看/下载当前PDF</a>
+                    <br><small>如需替换，请选择新文件；如不替换，留空即可。</small>
+                </div>
+                <% } %>
+                <label for="pdfFile">上传新PDF文件</label>
+                <input type="file" id="pdfFile" name="pdfFile" accept=".pdf">
             </div>
             <button type="submit" class="submit-btn">保存更改</button>
         </form>
@@ -95,5 +158,22 @@
         <% } %>
     </div>
 
+    <script>
+        function toggleContentType() {
+            var materialType = document.getElementById('materialType').value;
+            var textContentGroup = document.getElementById('textContentGroup');
+            var pdfFileGroup = document.getElementById('pdfFileGroup');
+
+            if (materialType === 'text') {
+                textContentGroup.style.display = 'block';
+                pdfFileGroup.style.display = 'none';
+            } else {
+                textContentGroup.style.display = 'none';
+                pdfFileGroup.style.display = 'block';
+            }
+        }
+    </script>
+
 </body>
 </html>
+

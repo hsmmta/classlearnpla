@@ -3,6 +3,8 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <link rel="stylesheet" href="<%= request.getContextPath() %>/css/mobile.css">
     <title>提出问题 - 班级讨论区</title>
     <link rel="stylesheet" href="${pageContext.request.contextPath}/auth/style.css">
     <style>
@@ -20,6 +22,20 @@
             height: 150px;
             resize: vertical;
         }
+        .back-btn {
+            display: inline-block;
+            margin-bottom: 15px;
+            padding: 8px 16px;
+            background-color: #6c757d;
+            color: white;
+            text-decoration: none;
+            border-radius: 4px;
+            font-size: 14px;
+            transition: background-color 0.3s;
+        }
+        .back-btn:hover {
+            background-color: #5a6268;
+        }
     </style>
 </head>
 <body>
@@ -29,6 +45,7 @@
     </div>
 
     <div class="form-container">
+        <a href="${pageContext.request.contextPath}/discussion/list" class="back-btn">← 返回讨论区</a>
         <form action="${pageContext.request.contextPath}/discussion/ask" method="post">
             <div class="input-group">
                 <label for="questionTitle">问题标题</label>

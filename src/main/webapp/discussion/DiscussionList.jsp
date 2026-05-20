@@ -5,6 +5,8 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <link rel="stylesheet" href="<%= request.getContextPath() %>/css/mobile.css">
     <title>班级讨论区</title>
     <link rel="stylesheet" href="${pageContext.request.contextPath}/auth/style.css">
     <style>
@@ -40,6 +42,20 @@
             text-align: right;
             margin-bottom: 20px;
         }
+        .back-btn {
+            display: inline-block;
+            margin-bottom: 20px;
+            padding: 8px 16px;
+            background-color: #6c757d;
+            color: white;
+            text-decoration: none;
+            border-radius: 4px;
+            font-size: 14px;
+            transition: background-color 0.3s;
+        }
+        .back-btn:hover {
+            background-color: #5a6268;
+        }
     </style>
 </head>
 <body>
@@ -48,7 +64,8 @@
     </div>
 
     <div class="form-container list-container">
-        <div class="ask-btn-container">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+            <a href="${pageContext.request.contextPath}/home/index.jsp" class="back-btn">← 返回首页</a>
             <a href="${pageContext.request.contextPath}/discussion/AskQuestion.jsp" class="submit-btn" style="display: inline-block; width: auto;">我有问题</a>
         </div>
         <table class="question-list">

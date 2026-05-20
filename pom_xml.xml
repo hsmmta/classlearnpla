@@ -54,31 +54,38 @@
             <artifactId>activation</artifactId>
             <version>1.1.1</version>
         </dependency>
-
         <dependency>
             <groupId>com.aliyun</groupId>
             <artifactId>dypnsapi20170525</artifactId>
             <version>2.0.0</version>
         </dependency>
-
         <dependency>
             <groupId>com.aliyun</groupId>
             <artifactId>tea-openapi</artifactId>
             <version>0.2.8</version>
         </dependency>
-
         <dependency>
             <groupId>com.aliyun</groupId>
             <artifactId>tea-util</artifactId>
             <version>0.2.21</version>
         </dependency>
-
         <dependency>
             <groupId>com.aliyun</groupId>
             <artifactId>credentials-java</artifactId>
             <version>0.3.4</version>
         </dependency>
 
+        <!-- Apache Commons FileUpload for file upload -->
+        <dependency>
+            <groupId>commons-fileupload</groupId>
+            <artifactId>commons-fileupload</artifactId>
+            <version>1.5</version>
+        </dependency>
+        <dependency>
+            <groupId>commons-io</groupId>
+            <artifactId>commons-io</artifactId>
+            <version>2.11.0</version>
+        </dependency>
     </dependencies>
 
     <repositories>

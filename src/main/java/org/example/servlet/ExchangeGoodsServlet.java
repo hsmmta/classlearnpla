@@ -37,19 +37,18 @@ public class ExchangeGoodsServlet extends HttpServlet {
         }
 
         // 获取参数
-        String itemIDStr = request.getParameter("itemID");
+        String goodsID = request.getParameter("itemID");
         String needPointsStr = request.getParameter("needPoints");
 
-        if (itemIDStr == null || needPointsStr == null) {
+        if (goodsID == null || goodsID.trim().isEmpty() || needPointsStr == null) {
             response.getWriter().write("{\"success\":false, \"msg\":\"参数不完整\"}");
             return;
         }
 
         try {
-            int itemID = Integer.parseInt(itemIDStr);
             int needPoints = Integer.parseInt(needPointsStr);
 
-            if (exchangeGoods(userID, itemID, needPoints)) {
+            if (exchangeGoods(userID, goodsID, needPoints)) {
                 response.getWriter().write("{\"success\":true, \"msg\":\"兑换成功\"}");
             } else {
                 response.getWriter().write("{\"success\":false, \"msg\":\"兑换失败，请确保积分足够\"}");
@@ -62,7 +61,7 @@ public class ExchangeGoodsServlet extends HttpServlet {
     /**
      * 执行商品兑换逻辑
      */
-    private boolean exchangeGoods(String userID, int itemID, int needPoints) {
+    private boolean exchangeGoods(String userID, String goodsID, int needPoints) {
         Connection conn = null;
         PreparedStatement pstmt = null;
         ResultSet rs = null;
@@ -109,7 +108,7 @@ public class ExchangeGoodsServlet extends HttpServlet {
                 pstmt = conn.prepareStatement(recordOpSql);
                 pstmt.setString(1, userID);
                 pstmt.setString(2, "-" + needPoints);
-                pstmt.setString(3, "兑换" + itemID);
+                pstmt.setString(3, "兑换" + goodsID);
                 pstmt.setTimestamp(4, Timestamp.valueOf(LocalDateTime.now()));
                 pstmt.executeUpdate();
 

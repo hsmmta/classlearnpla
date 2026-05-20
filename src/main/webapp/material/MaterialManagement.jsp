@@ -5,6 +5,8 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <link rel="stylesheet" href="<%= request.getContextPath() %>/css/mobile.css">
     <title>我的资料管理 - 班级学习社区平台</title>
     <style>
         body {
@@ -59,11 +61,26 @@
             color: #999;
             padding: 40px;
         }
+        .back-btn {
+            display: inline-block;
+            margin-bottom: 20px;
+            padding: 8px 16px;
+            background-color: #6c757d;
+            color: white;
+            text-decoration: none;
+            border-radius: 4px;
+            font-size: 14px;
+            transition: background-color 0.3s;
+        }
+        .back-btn:hover {
+            background-color: #5a6268;
+        }
     </style>
 </head>
 <body>
 
     <div class="container">
+        <a href="${pageContext.request.contextPath}/material/search" class="back-btn">← 返回资料区</a>
         <h2>我的资料管理</h2>
         <table class="material-table">
             <thead>
@@ -71,6 +88,7 @@
                     <th>资料ID</th>
                     <th>资料标题</th>
                     <th>所属科目</th>
+                    <th>资料类型</th>
                     <th>上传时间</th>
                     <th>审核状态</th>
                     <th>操作</th>
@@ -82,7 +100,7 @@
                     if (materials == null || materials.isEmpty()) {
                 %>
                     <tr>
-                        <td colspan="6" class="no-data">您还没有上传任何资料。</td>
+                        <td colspan="7" class="no-data">您还没有上传任何资料。</td>
                     </tr>
                 <%
                     } else {
@@ -92,11 +110,12 @@
                         <td><%= material.getMaterialID() %></td>
                         <td><%= material.getMaterialTitle() %></td>
                         <td><%= material.getMaterialSubject() %></td>
+                        <td><%= "pdf".equals(material.getMaterialType()) ? "PDF文件" : "文本内容" %></td>
                         <td><%= new java.text.SimpleDateFormat("yyyy-MM-dd HH:mm").format(material.getUploadTime()) %></td>
                         <td><%= material.getMaterialState() %></td>
                         <td>
-                            <a href="/material/edit?id=<%= material.getMaterialID() %>" class="action-btn">编辑</a>
-                            <a href="/material/delete?id=<%= material.getMaterialID() %>" class="action-btn delete" onclick="return confirm('确定要删除这份资料吗？');">删除</a>
+                            <a href="${pageContext.request.contextPath}/material/edit?id=<%= material.getMaterialID() %>" class="action-btn">编辑</a>
+                            <a href="${pageContext.request.contextPath}/material/delete?id=<%= material.getMaterialID() %>" class="action-btn delete" onclick="return confirm('确定要删除这份资料吗？');">删除</a>
                         </td>
                     </tr>
                 <%

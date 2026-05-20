@@ -47,6 +47,8 @@ public class ViewMaterialServlet extends HttpServlet {
                         material.setUploaderName(rs.getString("uploaderName"));
                         material.setUploadTime(rs.getTimestamp("uploadTime"));
                         material.setMaterialContent(rs.getString("materialContent"));
+                        material.setMaterialType(rs.getString("materialType"));
+                        material.setFilePath(rs.getString("filePath"));
                     }
                 }
             }

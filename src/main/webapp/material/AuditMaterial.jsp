@@ -5,6 +5,8 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <link rel="stylesheet" href="<%= request.getContextPath() %>/css/mobile.css">
     <title>资料审核 - 班级学习社区平台</title>
     <style>
         body {
@@ -54,10 +56,25 @@
         .view-btn {
              background-color: #4a90e2;
         }
+        .back-btn {
+            display: inline-block;
+            margin-bottom: 20px;
+            padding: 8px 16px;
+            background-color: #6c757d;
+            color: white;
+            text-decoration: none;
+            border-radius: 4px;
+            font-size: 14px;
+            transition: background-color 0.3s;
+        }
+        .back-btn:hover {
+            background-color: #5a6268;
+        }
     </style>
 </head>
 <body>
     <div class="container">
+        <a href="${pageContext.request.contextPath}/Administrator/index.jsp" class="back-btn">← 返回管理后台</a>
         <h2>待审核资料列表</h2>
         <table class="audit-table">
             <thead>
@@ -83,9 +100,9 @@
                         <td><%= material.getUploaderName() %></td>
                         <td><%= new java.text.SimpleDateFormat("yyyy-MM-dd HH:mm").format(material.getUploadTime()) %></td>
                         <td>
-                            <a href="/material/view_content?id=<%= material.getMaterialID() %>" target="_blank" class="action-btn view-btn">查看内容</a>
-                            <a href="/material/updateState?id=<%= material.getMaterialID() %>&state=审核通过" class="action-btn approve-btn">通过</a>
-                            <a href="/material/updateState?id=<%= material.getMaterialID() %>&state=审核不通过" class="action-btn reject-btn">驳回</a>
+                            <a href="javascript:void(0);" onclick="window.open('${pageContext.request.contextPath}/material/view_content?id=<%= material.getMaterialID() %>')" class="action-btn view-btn">查看内容</a>
+                            <a href="${pageContext.request.contextPath}/material/updateState?id=<%= material.getMaterialID() %>&state=审核通过" class="action-btn approve-btn">通过</a>
+                            <a href="${pageContext.request.contextPath}/material/updateState?id=<%= material.getMaterialID() %>&state=审核不通过" class="action-btn reject-btn">驳回</a>
                         </td>
                     </tr>
                 <%

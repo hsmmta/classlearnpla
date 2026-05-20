@@ -40,11 +40,11 @@ public class AddPrizeServlet extends HttpServlet {
 
         // 4. 第二步校验：字段长度（匹配数据库表字段长度，避免插入失败）
         if (goodsID.length() > 15) {
-            response.getWriter().write("<script>alert('上架失败！奖品ID不能超过15个字符'); window.history.back();</script>");
+            response.getWriter().write("<script>alert('上架失败！商品ID不能超过15个字符'); window.history.back();</script>");
             return;
         }
         if (goodsName.length() > 20) {
-            response.getWriter().write("<script>alert('上架失败！奖品名称不能超过20个字符'); window.history.back();</script>");
+            response.getWriter().write("<script>alert('上架失败！商品名称不能超过20个字符'); window.history.back();</script>");
             return;
         }
 
@@ -92,9 +92,9 @@ public class AddPrizeServlet extends HttpServlet {
             // 执行插入，获取受影响行数
             int rows = pstmt.executeUpdate();
             if (rows > 0) {
-                // 上架成功：弹窗提示 + 跳转到奖品列表页（ManagePrize.jsp）
-                System.out.println("奖品上架成功：ID=" + goodsID);
-                response.getWriter().write("<script>alert('奖品上架成功！'); window.location.href='" + request.getContextPath() + "/Administrator/ManagePrize.jsp';</script>");
+                // 上架成功：弹窗提示 + 跳转到商品列表页（ManagePrize.jsp）
+                System.out.println("商品上架成功：ID=" + goodsID);
+                response.getWriter().write("<script>alert('商品上架成功！'); window.location.href='" + request.getContextPath() + "/Administrator/ManagePrize.jsp';</script>");
             } else {
                 // 插入失败：弹窗提示 + 回退
                 response.getWriter().write("<script>alert('上架失败！无数据被修改'); window.history.back();</script>");
@@ -103,8 +103,8 @@ public class AddPrizeServlet extends HttpServlet {
             e.printStackTrace();
             // 区分错误类型，精准提示（和注册的主键冲突提示一致）
             if (e.getErrorCode() == 1062) {
-                // 主键冲突：奖品ID重复
-                response.getWriter().write("<script>alert('上架失败！该奖品ID已存在，请更换'); window.history.back();</script>");
+                // 主键冲突：商品ID重复
+                response.getWriter().write("<script>alert('上架失败！该商品ID已存在，请更换'); window.history.back();</script>");
             } else {
                 // 其他数据库错误
                 response.getWriter().write("<script>alert('上架失败！数据库错误：" + e.getMessage() + "'); window.history.back();</script>");
@@ -115,7 +115,7 @@ public class AddPrizeServlet extends HttpServlet {
         }
     }
 
-    // 拒绝GET请求直接访问，跳转到添加奖品页
+    // 拒绝GET请求直接访问，跳转到添加商品页
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
         response.sendRedirect(request.getContextPath() + "/Administrator/AddPrize.html");

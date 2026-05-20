@@ -3,6 +3,8 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <link rel="stylesheet" href="<%= request.getContextPath() %>/css/mobile.css">
     <title>学习社区 · 管理后台</title>
     <style>
         * {
@@ -166,9 +168,9 @@
         <a href="index.jsp" class="active">首页</a>
         <a href="${pageContext.request.contextPath}/material/audit">资料审核</a>
         <a href="${pageContext.request.contextPath}/discussion/audit">问题审核</a>
-        <a href="ModifyUserPoints.html">用户积分管理</a>
+        <a href="ModifyUserPoints.jsp">用户积分管理</a>
         <a href="ManagePrize.jsp">积分商品管理</a>
-        <a href="AddGoods.html">添加商品</a>
+        <a href="AddPrize.html">添加商品</a>
     </div>
     <div class="nav-right">
         <a href="signin.html" onclick="return confirm('确定要退出登录吗？')">退出登录</a>
@@ -234,7 +236,7 @@
             <div class="module-title">用户积分管理</div>
             <div class="module-desc">查询、增加、减少或设置用户的积分</div>
             <div class="btn-group">
-                <a href="ModifyUserPoints.html" class="btn-primary" style="text-decoration: none; color: white;">进入管理</a>
+                <a href="ModifyUserPoints.jsp" class="btn-primary" style="text-decoration: none; color: white;">进入管理</a>
             </div>
         </div>
 
@@ -250,7 +252,7 @@
             <div class="module-title">添加商品</div>
             <div class="module-desc">向积分商城添加新的商品</div>
             <div class="btn-group">
-                <a href="AddGoods.html" class="btn-primary" style="text-decoration: none; color: white;">进入管理</a>
+                <a href="AddPrize.html" class="btn-primary" style="text-decoration: none; color: white;">进入管理</a>
             </div>
         </div>
     </div>

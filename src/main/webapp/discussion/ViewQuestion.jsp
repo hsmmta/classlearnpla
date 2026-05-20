@@ -6,6 +6,8 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <link rel="stylesheet" href="<%= request.getContextPath() %>/css/mobile.css">
     <title>查看问题 - 班级讨论区</title>
     <link rel="stylesheet" href="${pageContext.request.contextPath}/auth/style.css">
     <style>
@@ -116,6 +118,20 @@
             background-color: #fff8e1;
             padding: 18px 0;
         }
+        .back-btn {
+            display: inline-block;
+            margin-bottom: 20px;
+            padding: 8px 16px;
+            background-color: #6c757d;
+            color: white;
+            text-decoration: none;
+            border-radius: 4px;
+            font-size: 14px;
+            transition: background-color 0.3s;
+        }
+        .back-btn:hover {
+            background-color: #5a6268;
+        }
     </style>
 </head>
 <body>
@@ -133,6 +149,7 @@
     </div>
 
     <div class="form-container discussion-container">
+        <a href="${pageContext.request.contextPath}/discussion/list" class="back-btn">← 返回讨论区</a>
         <% if (question != null) { %>
             <div class="question-header">
                 <h2><%= question.getQuestionTitle() %></h2>

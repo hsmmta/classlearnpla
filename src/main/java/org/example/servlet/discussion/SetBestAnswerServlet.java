@@ -55,11 +55,11 @@ public class SetBestAnswerServlet extends HttpServlet {
 
             if ("success".equals(result)) {
                 // 设置成功，重定向回问题页面
-                response.sendRedirect(request.getContextPath() + "/discussion/viewQuestion?questionID=" + questionID);
+                response.sendRedirect(request.getContextPath() + "/discussion/view?id=" + questionID);
             } else {
                 // 失败，显示错误信息
                 response.setContentType("text/html;charset=UTF-8");
-                response.getWriter().write("<h1>操作失败</h1><p>" + result + "</p><p><a href='" + request.getContextPath() + "/discussion/viewQuestion?questionID=" + questionID + "'>返回</a></p>");
+                response.getWriter().write("<h1>操作失败</h1><p>" + result + "</p><p><a href='" + request.getContextPath() + "/discussion/view?id=" + questionID + "'>返回</a></p>");
             }
         } catch (NumberFormatException e) {
             response.setContentType("text/html;charset=UTF-8");

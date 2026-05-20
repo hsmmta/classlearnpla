@@ -21,10 +21,10 @@ public class AddCommentServlet extends HttpServlet {
         HttpSession session = request.getSession();
 
         String userID = (String) session.getAttribute("userID");
-        Boolean isAdmin = (Boolean) session.getAttribute("isAdmin");
+        String userType = (String) session.getAttribute("userType");
 
         // Users must be logged in to comment
-        if (userID == null && (isAdmin == null || !isAdmin)) {
+        if (userID == null && !"admin".equals(userType)) {
             // Redirect to login if not logged in
             response.sendRedirect(request.getContextPath() + "/auth/signin.html");
             return;
@@ -34,7 +34,7 @@ public class AddCommentServlet extends HttpServlet {
         String commentContent = request.getParameter("commentContent");
 
         // Use admin ID if an admin is commenting
-        String commenterID = isAdmin != null && isAdmin ? "admin" : userID;
+        String commenterID = "admin".equals(userType) ? "admin" : userID;
 
 
         if (commentContent != null && !commentContent.trim().isEmpty()) {

@@ -1,0 +1,12 @@
+#!/bin/bash
+# 复制到 Tomcat bin/setenv.sh，或在启动前 source；亦可使用项目根目录 .env
+
+export DB_URL="jdbc:mysql://127.0.0.1:3306/web_demo?characterEncoding=utf8&allowPublicKeyRetrieval=true&useSSL=false"
+export DB_USERNAME="your_db_user"
+export DB_PASSWORD="your_db_password"
+
+export ALIYUN_ACCESS_KEY_ID="your_access_key_id"
+export ALIYUN_ACCESS_KEY_SECRET="your_access_key_secret"
+
+export MAIL_SENDER_EMAIL="your_email@example.com"
+export MAIL_SMTP_AUTH_CODE="your_smtp_auth_code"

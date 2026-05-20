@@ -11,6 +11,8 @@ public class Material {
     private String materialSubject;
     private String materialState;
     private Timestamp uploadTime;
+    private String materialType; // 'text' or 'pdf'
+    private String filePath; // PDF文件路径
 
     // Default constructor
     public Material() {
@@ -91,5 +93,21 @@ public class Material {
 
     public void setUploadTime(Timestamp uploadTime) {
         this.uploadTime = uploadTime;
+    }
+
+    public String getMaterialType() {
+        return materialType;
+    }
+
+    public void setMaterialType(String materialType) {
+        this.materialType = materialType;
+    }
+
+    public String getFilePath() {
+        return filePath;
+    }
+
+    public void setFilePath(String filePath) {
+        this.filePath = filePath;
     }
 }

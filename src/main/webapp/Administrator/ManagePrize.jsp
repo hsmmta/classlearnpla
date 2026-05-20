@@ -5,7 +5,9 @@
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8">
-  <title>学习社区 · 管理后台 - 奖品管理</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <link rel="stylesheet" href="<%= request.getContextPath() %>/css/mobile.css">
+  <title>学习社区 · 管理后台 - 商品管理</title>
   <style>
     * {
       margin: 0;
@@ -108,7 +110,7 @@
       background-color: rgba(255, 255, 255, 0.1);
     }
 
-    /* 奖品表格 */
+    /* 商品表格 */
     .prize-table {
       width: 100%;
       background-color: rgba(255, 255, 255, 0.05);
@@ -184,7 +186,7 @@
   </div>
   <div class="nav-center">
     <a href="index.jsp">首页</a>
-    <a href="ManagePrize.jsp" class="active">奖品管理</a>
+    <a href="ManagePrize.jsp" class="active">商品管理</a>
     <a href="#">用户管理</a>
     <a href="#">资料管理</a>
     <a href="#">问题管理</a>
@@ -199,23 +201,24 @@
 <!-- 主内容区 -->
 <div class="main-content">
   <div class="page-header">
-    <div class="page-title">奖品管理</div>
+    <div class="page-title">商品管理</div>
     <div class="tab-group">
-      <div class="tab-item" data-tab="add" onclick="window.location.href='AddPrize.html'">添加奖品</div>
-      <div class="tab-item" data-tab="list" onclick="switchTab('list')">奖品列表</div>
-      <div class="tab-item" data-tab="off" onclick="switchTab('off')">下架奖品</div>
+      <div class="tab-item" data-tab="add" onclick="window.location.href='AddPrize.html'">添加商品</div>
+      <div class="tab-item" data-tab="list" onclick="switchTab('list')">商品列表</div>
+      <div class="tab-item" data-tab="off" onclick="switchTab('off')">下架商品</div>
     </div>
   </div>
 
-  <!-- 奖品列表表格 - 新增操作列+下架按钮 -->
+  <!-- 商品列表表格 -->
   <table class="prize-table">
     <thead>
     <tr>
-      <th>奖品ID</th>
-      <th>奖品名称</th>
-      <th>商品描述</th>
+      <th>商品ID</th>
+      <th>商品名称</th>
+      <th>商品类型</th>
       <th>所需积分</th>
-      <th>操作</th> <!-- 新增操作列 -->
+      <th>库存数量</th>
+      <th>操作</th>
     </tr>
     </thead>
     <tbody>
@@ -227,12 +230,11 @@
         conn = DBUtil.getConnection();
         if (conn == null) {
     %>
-    <tr><td colspan="5" class="empty-tip" style="color:#ff4d4f">数据库连接失败，请检查DBUtil配置！</td></tr>
+    <tr><td colspan="6" class="empty-tip" style="color:#ff4d4f">数据库连接失败，请检查DBUtil配置！</td></tr>
     <%
         return;
       }
-      // SQL保持不变，查询所有奖品字段
-      String sql = "SELECT itemID as goodsID, itemName as goodsName, needPoint as needPoints, `desc` FROM goods";
+      String sql = "SELECT goodsID, goodsName, goodsType, needPoints, currentNum FROM goodslist";
       pstmt = conn.prepareStatement(sql);
       rs = pstmt.executeQuery();
       boolean hasData = false;
@@ -240,15 +242,16 @@
         hasData = true;
         String goodsID = rs.getString("goodsID");
         String goodsName = rs.getString("goodsName");
+        String goodsType = rs.getString("goodsType");
         int needPoints = rs.getInt("needPoints");
-        String desc = rs.getString("desc");
+        int currentNum = rs.getInt("currentNum");
     %>
     <tr>
       <td><%= goodsID %></td>
       <td><%= goodsName %></td>
-      <td><%= desc != null ? desc : "" %></td>
+      <td><%= goodsType != null ? goodsType : "" %></td>
       <td><%= needPoints %></td>
-      <!-- 新增下架按钮，携带goodsID跳转到删除确认页 -->
+      <td><%= currentNum %></td>
       <td>
         <a href="DeletePrize.jsp?goodsID=<%= goodsID %>">
           <button class="btn-del">下架</button>
@@ -260,7 +263,7 @@
       if (!hasData) {
     %>
     <tr>
-      <td colspan="5" class="empty-tip">暂无奖品数据，点击「添加奖品」上架新奖品吧！</td>
+      <td colspan="6" class="empty-tip">暂无商品数据，点击「添加商品」上架新商品吧！</td>
     </tr>
     <%
       }

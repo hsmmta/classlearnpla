@@ -1,5 +1,6 @@
 <%@ page contentType="text/html;charset=UTF-8" language="java" %>
 <%@ page import="java.sql.*" %>
+<%@ page import="org.example.util.DBUtil" %>
 <%
     // 获取用户积分
     String userID = (String) session.getAttribute("userID");
@@ -8,8 +9,8 @@
     if (userID != null && !userID.isEmpty()) {
         // 从points表查询用户积分
         try {
-            Class.forName("com.mysql.cj.jdbc.Driver");
-            Connection conn = DriverManager.getConnection("jdbc:mysql://localhost:3306/web_demo?characterEncoding=utf8&allowPublicKeyRetrieval=true&useSSL=false", "root", "123456ks");
+            Connection conn = DBUtil.getConnection();
+            if (conn == null) throw new SQLException("数据库未连接");
             String sql = "SELECT points FROM points WHERE userID = ?";
             PreparedStatement pstmt = conn.prepareStatement(sql);
             pstmt.setString(1, userID);
@@ -41,6 +42,8 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <link rel="stylesheet" href="<%= request.getContextPath() %>/css/mobile.css">
     <title>班级学习社区平台-个人信息</title>
     <style>
         * {

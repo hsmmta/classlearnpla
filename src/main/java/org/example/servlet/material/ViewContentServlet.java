@@ -20,9 +20,10 @@ public class ViewContentServlet extends HttpServlet {
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
         HttpSession session = request.getSession();
-        Boolean isAdmin = (Boolean) session.getAttribute("isAdmin");
+        String userType = (String) session.getAttribute("userType");
 
-        if (isAdmin == null || !isAdmin) {
+        if (userType == null || !"admin".equals(userType)) {
+            response.setContentType("text/html;charset=UTF-8");
             response.getWriter().write("<h1>无权限</h1>");
             return;
         }
@@ -48,6 +49,8 @@ public class ViewContentServlet extends HttpServlet {
                 material.setUploaderName(rs.getString("uploaderName"));
                 material.setUploadTime(rs.getTimestamp("uploadTime"));
                 material.setMaterialContent(rs.getString("materialContent"));
+                material.setMaterialType(rs.getString("materialType"));
+                material.setFilePath(rs.getString("filePath"));
             }
         } catch (SQLException e) {
             e.printStackTrace();
@@ -56,7 +59,6 @@ public class ViewContentServlet extends HttpServlet {
         }
 
         request.setAttribute("material", material);
-        // Re-use the existing view page
-        request.getRequestDispatcher("/material/ViewMaterial.jsp").forward(request, response);
+        request.getRequestDispatcher("/material/AdminViewMaterial.jsp").forward(request, response);
     }
 }

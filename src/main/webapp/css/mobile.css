@@ -1,0 +1,114 @@
+/* 移动端 / WebView App 通用样式 */
+html {
+    -webkit-text-size-adjust: 100%;
+}
+
+body {
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
+    padding-bottom: env(safe-area-inset-bottom);
+    overflow-x: hidden;
+}
+
+img,
+video,
+iframe {
+    max-width: 100%;
+    height: auto;
+}
+
+input[type="text"],
+input[type="password"],
+input[type="email"],
+input[type="tel"],
+input[type="number"],
+input[type="search"],
+input[type="url"],
+select,
+textarea {
+    max-width: 100%;
+    font-size: 16px; /* 避免 iOS 自动放大 */
+}
+
+button,
+input[type="submit"],
+input[type="button"],
+a.menu-btn,
+.nav-bar a {
+    min-height: 44px;
+    min-width: 44px;
+}
+
+.login-container,
+.menu-container,
+.form-container,
+.container {
+    max-width: 92vw !important;
+    width: 100% !important;
+    margin-left: auto !important;
+    margin-right: auto !important;
+    box-sizing: border-box;
+}
+
+.nav-bar ul {
+    flex-wrap: wrap;
+    gap: 12px 20px !important;
+    padding: 0 12px;
+}
+
+.menu-container {
+    padding: 24px 16px !important;
+}
+
+.menu-btn {
+    display: inline-block !important;
+    width: calc(50% - 20px) !important;
+    min-width: 140px !important;
+    max-width: 100% !important;
+    height: auto !important;
+    min-height: 88px !important;
+    line-height: 1.4 !important;
+    padding: 20px 10px !important;
+    margin: 8px !important;
+    box-sizing: border-box;
+    vertical-align: top;
+}
+
+.table-scroll {
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+.table-scroll table {
+    min-width: 600px;
+}
+
+/* 无 table-scroll 包裹时，容器内表格可横向滑动 */
+.container > table,
+.container .audit-table,
+.container .material-table,
+.container .question-list,
+.container .results-table,
+.container .prize-table {
+    display: block;
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+.platform-title {
+    font-size: clamp(18px, 5vw, 28px) !important;
+    padding: 16px 12px !important;
+}
+
+@media (max-width: 480px) {
+    .menu-btn {
+        width: 100% !important;
+        margin: 8px 0 !important;
+    }
+
+    body {
+        padding: 12px;
+    }
+}
