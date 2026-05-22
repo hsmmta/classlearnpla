@@ -27,6 +27,22 @@ pom_xml.txt
 
 # ========== 运行时上传（勿提交用户文件）==========
 src/main/webapp/uploads/
+runtime-uploads/
+
+# ========== 本地临时文件（勿提交）==========
+cp.txt
+*.tmp
+*.temp
+*.bak
+*.orig
+*.rej
+.cache/
+/.cursor/
+/.history/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
 
 # ========== 系统文件 ==========
 .DS_Store
