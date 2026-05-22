@@ -1,0 +1,38 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    font-family: Inter, 'Microsoft YaHei', 'PingFang SC', sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  body {
+    @apply bg-gray-50 text-gray-800;
+    margin: 0;
+  }
+}
+
+@layer components {
+  .btn-primary {
+    @apply inline-flex items-center gap-2 rounded-md bg-brand-primary px-5 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-brand-primary/90 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary;
+  }
+  .btn-secondary {
+    @apply inline-flex items-center gap-2 rounded-md bg-brand-secondary px-5 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-brand-secondary/90 focus:outline-none;
+  }
+  .btn-ghost {
+    @apply inline-flex items-center gap-2 rounded-md border border-gray-200 bg-white px-5 py-2 text-sm font-medium text-gray-700 shadow-sm transition hover:bg-gray-50 focus:outline-none;
+  }
+  .card {
+    @apply rounded-xl bg-white shadow-sm ring-1 ring-gray-200/80 transition hover:shadow-md overflow-hidden;
+  }
+  .page-shell {
+    @apply mx-auto w-full max-w-6xl px-4 sm:px-6 lg:px-8 py-6 sm:py-10;
+  }
+  .section-title {
+    @apply text-2xl font-bold tracking-tight text-gray-900;
+  }
+  .label-tag {
+    @apply inline-flex items-center rounded-full bg-brand-primary/10 px-2.5 py-0.5 text-xs font-medium text-brand-primary;
+  }
+}

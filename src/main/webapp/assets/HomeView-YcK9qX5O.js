@@ -1,0 +1,11 @@
+import{j as l,g as d,d as s,x as m,i as o,y as e,c as p,p as u,B as _}from"./index-DkVAgknS.js";import{_ as t}from"./EntryCard.vue_vue_type_script_setup_true_lang-B9H8XzYy.js";import{B as g}from"./book-open-DG3gM3x8.js";import{M as n}from"./message-square-Du5KW7mU.js";import{G as f}from"./gift-V7hpar3z.js";import{c as a}from"./createLucideIcon-BQD2bAOR.js";/**
+ * @license @lucide/vue v1.16.0 - ISC
+ *
+ * This source code is licensed under the ISC license.
+ * See the LICENSE file in the root directory of this source tree.
+ */const x=[["path",{d:"m6 14 1.5-2.9A2 2 0 0 1 9.24 10H20a2 2 0 0 1 1.94 2.5l-1.54 6a2 2 0 0 1-1.95 1.5H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h3.9a2 2 0 0 1 1.69.9l.81 1.2a2 2 0 0 0 1.67.9H18a2 2 0 0 1 2 2v2",key:"usdka0"}]],h=a("folder-open",x);/**
+ * @license @lucide/vue v1.16.0 - ISC
+ *
+ * This source code is licensed under the ISC license.
+ * See the LICENSE file in the root directory of this source tree.
+ */const y=[["path",{d:"M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2",key:"975kel"}],["circle",{cx:"12",cy:"7",r:"4",key:"17ys0d"}]],k=a("user",y),b={class:"bg-gradient-to-br from-brand-primary to-brand-dark px-4 pt-12 pb-16 text-center"},v={class:"text-3xl sm:text-4xl font-bold text-white tracking-tight"},B={class:"page-shell -mt-8"},H={class:"grid gap-4 sm:grid-cols-2 lg:grid-cols-3"},$=l({__name:"HomeView",setup(N){const c=p(()=>_().user);return(w,i)=>{var r;return u(),d("div",null,[s("div",b,[s("h1",v," 欢迎，"+m(((r=c.value)==null?void 0:r.userName)||"同学"),1),i[0]||(i[0]=s("p",{class:"mt-3 text-white/70 text-base sm:text-lg max-w-lg mx-auto"}," 学习资料、互动讨论、积分奖励，一站搞定 ",-1))]),s("div",B,[s("div",H,[o(t,{title:"资料藏宝阁",description:"浏览和下载同学上传的学习资料",to:"/materials",icon:e(g),color:"primary"},null,8,["icon"]),o(t,{title:"班级讨论区",description:"提问、回答，分享你的想法",to:"/discussion",icon:e(n),color:"secondary"},null,8,["icon"]),o(t,{title:"我的讨论",description:"查看自己发起的讨论和审核状态",to:"/discussion/mine",icon:e(n),color:"green"},null,8,["icon"]),o(t,{title:"积分商城",description:"用积分换取心仪的商品",to:"/prizes",icon:e(f),color:"amber"},null,8,["icon"]),o(t,{title:"个人中心",description:"管理你的个人信息和密码",to:"/profile",icon:e(k),color:"green"},null,8,["icon"]),o(t,{title:"我的资料",description:"查看你上传的全部资料",to:"/materials/mine",icon:e(h),color:"primary"},null,8,["icon"])])])])}}});export{$ as default};

@@ -14,7 +14,7 @@ $env:APP_SERVER_URL="https://your-domain.example.com"
 npm run cap:sync
 ```
 
-默认 `http://10.0.2.2:8080` 供 **Android 模拟器** 访问本机 Tomcat（`mvn tomcat7:run` 或本地 8080）。
+默认 `http://10.0.2.2:8080` 供 **Android 模拟器** 访问本机 Tomcat（`mvn cargo:run` 或本地 8080）。
 
 真机内测请改为你电脑的局域网 IP，并在 [android/app/src/main/AndroidManifest.xml](./android/app/src/main/AndroidManifest.xml) 中保持 `usesCleartextTraffic="true"`（仅 debug）。
 

@@ -51,12 +51,24 @@ public class AliyunSmsConfig {
      */
     public static AliyunSmsConfig fromEnv() {
         return new AliyunSmsConfig(
-                EnvUtil.require("ALIYUN_ACCESS_KEY_ID"),
-                EnvUtil.require("ALIYUN_ACCESS_KEY_SECRET"),
+                trimSecret(EnvUtil.require("ALIYUN_ACCESS_KEY_ID")),
+                trimSecret(EnvUtil.require("ALIYUN_ACCESS_KEY_SECRET")),
                 EnvUtil.get("ALIYUN_SMS_SIGN_NAME", "速通互联验证码"),
                 EnvUtil.get("ALIYUN_SMS_TEMPLATE_CODE", "100001"),
                 EnvUtil.get("ALIYUN_SMS_SCHEME_NAME", "默认方案"),
                 EnvUtil.get("ALIYUN_SMS_TEMPLATE_PARAM", "{\"code\":\"##code##\",\"min\":\"5\"}")
         );
+    }
+
+    private static String trimSecret(String value) {
+        if (value == null) {
+            return "";
+        }
+        value = value.replace("\uFEFF", "").replace("\r", "").trim();
+        if ((value.startsWith("\"") && value.endsWith("\""))
+                || (value.startsWith("'") && value.endsWith("'"))) {
+            value = value.substring(1, value.length() - 1).trim();
+        }
+        return value;
     }
 }

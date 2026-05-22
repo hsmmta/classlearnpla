@@ -1,0 +1,1 @@
+import{_ as t,e as r,w as s,d as n,p as a,l}from"./index-Cidm-4Rn.js";const c={};function _(d,e){const o=a("el-card");return l(),r(o,null,{default:s(()=>[...e[0]||(e[0]=[n("h2",null,"管理后台",-1),n("p",null,"请选择左侧菜单进行资料审核、问题审核、奖品与积分管理。",-1)])]),_:1})}const f=t(c,[["render",_]]);export{f as default};
