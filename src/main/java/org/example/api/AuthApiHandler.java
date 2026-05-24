@@ -162,12 +162,56 @@ public class AuthApiHandler {
 
         Connection conn = null;
         PreparedStatement pstmt = null;
+        ResultSet rs = null;
         try {
             conn = DBUtil.getConnection();
             if (conn == null) {
                 JsonResponse.write(response, JsonResponse.fail("数据库连接失败"));
                 return;
             }
+            // If the account was previously closed (userStatus = -1), allow re-registration and reactivate it.
+            pstmt = conn.prepareStatement("SELECT userStatus FROM user WHERE userphone = ?");
+            pstmt.setString(1, userID);
+            rs = pstmt.executeQuery();
+            if (rs.next()) {
+                int status = rs.getInt("userStatus");
+                DBUtil.close(null, pstmt, rs);
+                pstmt = null;
+                rs = null;
+                if (status == -1) {
+                    pstmt = conn.prepareStatement(
+                            "UPDATE user SET userPassword=?, userName=?, classID=?, studentID=?, gender=?, userEmail=?, userStatus=1 WHERE userphone=?");
+                    pstmt.setString(1, userPassword);
+                    pstmt.setString(2, userName);
+                    pstmt.setString(3, classID == null ? "" : classID);
+                    pstmt.setString(4, studentID == null ? "" : studentID);
+                    pstmt.setString(5, gender == null ? "" : gender);
+                    pstmt.setString(6, userEmail == null ? "" : userEmail);
+                    pstmt.setString(7, userID);
+                    pstmt.executeUpdate();
+                    DBUtil.close(null, pstmt);
+                    pstmt = null;
+                    try {
+                        PreparedStatement pp = conn.prepareStatement(
+                                "INSERT INTO points (userID, userName, points) VALUES (?, ?, 0) " +
+                                        "ON DUPLICATE KEY UPDATE userName = VALUES(userName)");
+                        pp.setString(1, userID);
+                        pp.setString(2, userName);
+                        pp.executeUpdate();
+                        pp.close();
+                    } catch (SQLException ignored) {
+                    }
+                    session.removeAttribute("code");
+                    JsonResponse.write(response, JsonResponse.ok("注册成功（已恢复原注销账号）"));
+                    return;
+                }
+                JsonResponse.write(response, JsonResponse.fail("该手机号已注册"));
+                return;
+            }
+            DBUtil.close(null, pstmt, rs);
+            pstmt = null;
+            rs = null;
+
             String sql = "INSERT INTO user (userphone, userPassword, userName, classID, studentID, gender, userEmail, userStatus) VALUES (?, ?, ?, ?, ?, ?, ?, 1)";
             pstmt = conn.prepareStatement(sql);
             pstmt.setString(1, userID);
@@ -189,13 +233,9 @@ public class AuthApiHandler {
             session.removeAttribute("code");
             JsonResponse.write(response, JsonResponse.ok("注册成功"));
         } catch (SQLException e) {
-            if (e.getMessage() != null && e.getMessage().contains("Duplicate")) {
-                JsonResponse.write(response, JsonResponse.fail("该手机号已注册"));
-            } else {
-                JsonResponse.write(response, JsonResponse.fail("注册失败: " + e.getMessage()));
-            }
+            JsonResponse.write(response, JsonResponse.fail("注册失败: " + e.getMessage()));
         } finally {
-            DBUtil.close(conn, pstmt);
+            DBUtil.close(conn, pstmt, rs);
         }
     }
 

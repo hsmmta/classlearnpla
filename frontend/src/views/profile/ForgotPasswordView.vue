@@ -15,7 +15,9 @@
           </el-form-item>
           <div class="flex gap-2">
             <el-input v-model="code" placeholder="请输入邮箱验证码" class="flex-1" />
-            <button type="button" @click="sendCode" class="btn-secondary !px-3 !py-2 text-sm shrink-0">发送验证码</button>
+            <button type="button" :disabled="sending" @click="sendCode" class="btn-secondary !px-3 !py-2 text-sm shrink-0">
+              {{ sending ? '发送中…' : '发送验证码' }}
+            </button>
           </div>
           <el-form-item label="新密码">
             <el-input v-model="newPassword" type="password" show-password placeholder="请输入新密码" />
@@ -42,17 +44,37 @@ const userID = ref('')
 const email = ref('')
 const code = ref('')
 const newPassword = ref('')
+const sending = ref(false)
 
 async function sendCode() {
+  if (!userID.value.trim() || !email.value.trim()) {
+    ElMessage.warning('请先填写手机号和邮箱')
+    return
+  }
+  sending.value = true
   const body = new URLSearchParams({ userID: userID.value, email: email.value })
-  const res = await http.post<any, ApiResult>('/profile/send-reset-code', body)
-  res.success ? ElMessage.success(res.msg) : ElMessage.error(res.msg)
+  try {
+    const res = await http.post<any, ApiResult>('/profile/send-reset-code', body, { timeout: 90000 })
+    res.success ? ElMessage.success(res.msg) : ElMessage.error(res.msg)
+  } catch (e: any) {
+    ElMessage.error(e?.message || '发送失败')
+  } finally {
+    sending.value = false
+  }
 }
 
 async function reset() {
+  if (!userID.value.trim() || !code.value.trim() || !newPassword.value.trim()) {
+    ElMessage.warning('请填写完整信息')
+    return
+  }
   const body = new URLSearchParams({ userID: userID.value, code: code.value, newPassword: newPassword.value })
-  const res = await http.post<any, ApiResult>('/profile/reset-password', body)
-  if (res.success) { ElMessage.success(res.msg); router.push('/login') }
-  else ElMessage.error(res.msg)
+  try {
+    const res = await http.post<any, ApiResult>('/profile/reset-password', body)
+    if (res.success) { ElMessage.success(res.msg); router.push('/login') }
+    else ElMessage.error(res.msg)
+  } catch (e: any) {
+    ElMessage.error(e?.message || '重置失败')
+  }
 }
 </script>

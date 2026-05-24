@@ -7,6 +7,9 @@
       <button v-if="isMobile" class="btn-ghost !px-3 !py-2 text-sm" @click="openInSystemBrowser">系统浏览器下载</button>
       <button v-if="isMobile" class="btn-ghost !px-3 !py-2 text-sm" @click="copyDownloadLink">复制下载链接</button>
     </div>
+    <div v-if="isMobile" class="mb-3 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-700">
+      提示：若“下载 PDF”和“系统浏览器下载”都没有反应，请点击“复制下载链接”，粘贴到手机浏览器地址栏下载。
+    </div>
     <div class="card p-3 sm:p-4">
       <div v-if="loading" class="py-12 text-center text-sm text-brand-muted">正在生成预览图，请稍候...</div>
       <div v-else-if="errorMsg" class="py-12 text-center text-sm text-red-500">{{ errorMsg }}</div>

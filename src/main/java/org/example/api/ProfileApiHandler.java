@@ -8,6 +8,7 @@ import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
 import java.io.IOException;
 import java.sql.*;
+import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -254,47 +255,129 @@ public class ProfileApiHandler {
     private void sendResetCode(HttpServletRequest request, HttpServletResponse response) throws IOException {
         String email = request.getParameter("email");
         String userID = request.getParameter("userID");
-        if (email == null || userID == null) {
+        if (email == null || userID == null || email.trim().isEmpty() || userID.trim().isEmpty()) {
             JsonResponse.write(response, JsonResponse.fail("参数不完整"));
             return;
         }
-        String code = org.example.util.CodeUtil.generateCode();
-        if (!EmailUtil.sendResetPwdCode(email, code)) {
-            JsonResponse.write(response, JsonResponse.fail("邮件发送失败"));
-            return;
+        String uid = userID.trim();
+        String mail = email.trim();
+        Connection conn = null;
+        try {
+            conn = DBUtil.getConnection();
+            ensureResetCodeTable(conn);
+            String dbEmail = null;
+            try (PreparedStatement ps = conn.prepareStatement(
+                    "SELECT userEmail, userStatus FROM user WHERE userphone = ?")) {
+                ps.setString(1, uid);
+                ResultSet rs = ps.executeQuery();
+                if (!rs.next()) {
+                    JsonResponse.write(response, JsonResponse.fail("用户不存在"));
+                    return;
+                }
+                int status = rs.getInt("userStatus");
+                if (status != 1) {
+                    JsonResponse.write(response, JsonResponse.fail("该账号状态不可找回密码"));
+                    return;
+                }
+                dbEmail = rs.getString("userEmail");
+            }
+            if (dbEmail == null || dbEmail.trim().isEmpty() || !dbEmail.trim().equalsIgnoreCase(mail)) {
+                JsonResponse.write(response, JsonResponse.fail("手机号与邮箱不匹配"));
+                return;
+            }
+
+            String code = org.example.util.CodeUtil.generateCode();
+            if (!EmailUtil.sendResetPwdCode(mail, code)) {
+                JsonResponse.write(response, JsonResponse.fail("邮件发送失败，请稍后重试"));
+                return;
+            }
+            Timestamp expireAt = Timestamp.valueOf(LocalDateTime.now().plusMinutes(10));
+            try (PreparedStatement ps = conn.prepareStatement(
+                    "INSERT INTO reset_pwd_code (userID, code, expireAt, used, createdAt) VALUES (?, ?, ?, 0, NOW()) " +
+                            "ON DUPLICATE KEY UPDATE code = VALUES(code), expireAt = VALUES(expireAt), used = 0, createdAt = NOW()")) {
+                ps.setString(1, uid);
+                ps.setString(2, code);
+                ps.setTimestamp(3, expireAt);
+                ps.executeUpdate();
+            }
+            JsonResponse.write(response, JsonResponse.ok("验证码已发送到邮箱（10分钟内有效）"));
+        } catch (Exception e) {
+            JsonResponse.write(response, JsonResponse.fail("发送失败：" + e.getMessage()));
+        } finally {
+            DBUtil.close(conn, null);
         }
-        HttpSession session = request.getSession();
-        session.setAttribute("resetCode", code);
-        session.setAttribute("resetUserID", userID);
-        session.setMaxInactiveInterval(300);
-        JsonResponse.write(response, JsonResponse.ok("验证码已发送到邮箱"));
     }
 
     private void resetPassword(HttpServletRequest request, HttpServletResponse response) throws SQLException, IOException {
         String userID = request.getParameter("userID");
         String code = request.getParameter("code");
         String newPassword = request.getParameter("newPassword");
-        HttpSession session = request.getSession(false);
-        if (session == null) {
-            JsonResponse.write(response, JsonResponse.fail("会话已过期"));
+        if (userID == null || code == null || newPassword == null
+                || userID.trim().isEmpty() || code.trim().isEmpty() || newPassword.trim().isEmpty()) {
+            JsonResponse.write(response, JsonResponse.fail("参数不完整"));
             return;
         }
-        String sessionCode = (String) session.getAttribute("resetCode");
-        String resetUser = (String) session.getAttribute("resetUserID");
-        if (sessionCode == null || !sessionCode.equals(code) || !userID.equals(resetUser)) {
-            JsonResponse.write(response, JsonResponse.fail("验证码错误"));
-            return;
-        }
+        String uid = userID.trim();
+        String inputCode = code.trim();
         Connection conn = DBUtil.getConnection();
-        try (PreparedStatement ps = conn.prepareStatement("UPDATE user SET userPassword=? WHERE userphone=?")) {
-            ps.setString(1, newPassword);
-            ps.setString(2, userID);
-            ps.executeUpdate();
+        conn.setAutoCommit(false);
+        try {
+            ensureResetCodeTable(conn);
+            boolean valid = false;
+            try (PreparedStatement ps = conn.prepareStatement(
+                    "SELECT code, expireAt, used FROM reset_pwd_code WHERE userID = ? FOR UPDATE")) {
+                ps.setString(1, uid);
+                ResultSet rs = ps.executeQuery();
+                if (rs.next()) {
+                    String dbCode = rs.getString("code");
+                    Timestamp expireAt = rs.getTimestamp("expireAt");
+                    int used = rs.getInt("used");
+                    boolean notExpired = expireAt != null && expireAt.after(new Timestamp(System.currentTimeMillis()));
+                    valid = used == 0 && notExpired && inputCode.equalsIgnoreCase(dbCode == null ? "" : dbCode.trim());
+                }
+            }
+            if (!valid) {
+                conn.rollback();
+                JsonResponse.write(response, JsonResponse.fail("验证码错误或已过期"));
+                return;
+            }
+            try (PreparedStatement ps = conn.prepareStatement("UPDATE user SET userPassword=? WHERE userphone=?")) {
+                ps.setString(1, newPassword.trim());
+                ps.setString(2, uid);
+                int n = ps.executeUpdate();
+                if (n == 0) {
+                    conn.rollback();
+                    JsonResponse.write(response, JsonResponse.fail("用户不存在"));
+                    return;
+                }
+            }
+            try (PreparedStatement ps = conn.prepareStatement(
+                    "UPDATE reset_pwd_code SET used = 1, usedAt = NOW() WHERE userID = ?")) {
+                ps.setString(1, uid);
+                ps.executeUpdate();
+            }
+            conn.commit();
+            JsonResponse.write(response, JsonResponse.ok("密码重置成功"));
+        } catch (Exception e) {
+            conn.rollback();
+            JsonResponse.write(response, JsonResponse.fail("重置失败：" + e.getMessage()));
         } finally {
+            conn.setAutoCommit(true);
             conn.close();
         }
-        session.removeAttribute("resetCode");
-        session.removeAttribute("resetUserID");
-        JsonResponse.write(response, JsonResponse.ok("密码重置成功"));
+    }
+
+    private void ensureResetCodeTable(Connection conn) throws SQLException {
+        try (PreparedStatement ps = conn.prepareStatement(
+                "CREATE TABLE IF NOT EXISTS reset_pwd_code (" +
+                        "userID VARCHAR(64) PRIMARY KEY," +
+                        "code VARCHAR(16) NOT NULL," +
+                        "expireAt TIMESTAMP NOT NULL," +
+                        "used TINYINT(1) NOT NULL DEFAULT 0," +
+                        "createdAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP," +
+                        "usedAt TIMESTAMP NULL" +
+                        ")")) {
+            ps.executeUpdate();
+        }
     }
 }

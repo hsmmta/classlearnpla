@@ -15,16 +15,18 @@
             <h3 class="font-semibold text-gray-900 text-sm break-words line-clamp-2">{{ g.goodsName }}</h3>
             <span class="label-tag shrink-0">{{ g.goodsType }}</span>
           </div>
-          <p class="text-xs text-brand-muted mt-1">库存：{{ g.currentNum }}</p>
+          <p class="text-xs mt-1" :class="stockClass(g)">
+            {{ stockText(g) }}
+          </p>
         </div>
         <div class="px-4 pb-4 pt-2 border-t border-gray-100 flex items-center justify-between">
           <span class="font-bold text-brand-primary text-base">{{ g.needPoints }} <span class="text-xs font-normal text-brand-muted">积分</span></span>
           <button
             class="btn-primary !px-3 !py-1.5 text-xs"
-            :disabled="userPoints < g.needPoints || g.currentNum <= 0"
-            :class="userPoints < g.needPoints || g.currentNum <= 0 ? 'opacity-50 cursor-not-allowed' : ''"
+            :disabled="!canExchange(g)"
+            :class="!canExchange(g) ? 'opacity-50 cursor-not-allowed' : ''"
             @click="exchange(g)"
-          >兑换</button>
+          >{{ exchangeBtnText(g) }}</button>
         </div>
       </div>
     </div>
@@ -71,9 +73,37 @@ async function load() {
 
 async function exchange(g: any) {
   await ElMessageBox.confirm(`使用 ${g.needPoints} 积分兑换「${g.goodsName}」？`, '确认兑换', { type: 'info' })
-  const body = new URLSearchParams({ itemID: g.goodsID, needPoints: String(g.needPoints) })
+  const body = new URLSearchParams({ itemID: g.goodsID })
   const res = await http.post<any, ApiResult>('/prizes/exchange', body)
   res.success ? (ElMessage.success(res.msg), load()) : ElMessage.error(res.msg)
+}
+
+function isPhysical(g: any) {
+  return g.goodsType === '实体奖品'
+}
+
+function canExchange(g: any) {
+  if (userPoints.value < Number(g.needPoints || 0)) return false
+  if (isPhysical(g)) return Number(g.currentNum || 0) > 0
+  return true
+}
+
+function exchangeBtnText(g: any) {
+  if (isPhysical(g) && Number(g.currentNum || 0) <= 0) return '已兑完'
+  if (userPoints.value < Number(g.needPoints || 0)) return '积分不足'
+  return '兑换'
+}
+
+function stockText(g: any) {
+  if (isPhysical(g)) {
+    const n = Number(g.currentNum || 0)
+    return n > 0 ? `库存：${n}` : '库存：已兑换完'
+  }
+  return '虚拟奖品：数量不限'
+}
+
+function stockClass(g: any) {
+  return isPhysical(g) && Number(g.currentNum || 0) <= 0 ? 'text-red-500' : 'text-brand-muted'
 }
 onMounted(load)
 </script>

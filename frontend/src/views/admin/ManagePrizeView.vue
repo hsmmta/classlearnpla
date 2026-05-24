@@ -1,6 +1,6 @@
 <template>
   <div class="page-shell">
-    <PageHeader title="奖品管理" description="上架或删除积分商城商品" />
+    <PageHeader title="奖品管理" description="上架、库存维护、上下架与兑换申请处理" />
 
     <!-- Add form -->
     <div class="card p-4 sm:p-5 mb-6">
@@ -33,13 +33,58 @@
           <span class="label-tag shrink-0">{{ g.goodsType }}</span>
         </div>
         <p class="text-xs text-brand-muted">ID: {{ g.goodsID }}</p>
-        <div class="flex items-center justify-between mt-auto pt-2 border-t border-gray-100">
+        <p class="text-xs" :class="g.enabled === 1 ? 'text-green-600' : 'text-red-500'">
+          状态：{{ g.enabled === 1 ? '上架中' : '已下架' }}
+        </p>
+        <div class="mt-auto pt-2 border-t border-gray-100 space-y-2">
           <div class="text-xs text-gray-700">
-            <span class="font-semibold text-brand-primary">{{ g.needPoints }}</span> 积分 · 库存 {{ g.currentNum }}
+            <span class="font-semibold text-brand-primary">{{ g.needPoints }}</span> 积分 ·
+            <span v-if="g.goodsType === '实体奖品'">库存 {{ g.currentNum }}</span>
+            <span v-else>虚拟奖品不限量</span>
           </div>
-          <button class="inline-flex items-center gap-1 text-xs text-red-500 border border-red-200 rounded px-2 py-1 hover:bg-red-50 transition" @click="remove(g.goodsID)">
+          <div v-if="g.goodsType === '实体奖品'" class="flex items-center gap-2">
+            <el-input v-model="stockDelta[g.goodsID]" type="number" class="!w-20" placeholder="+10" />
+            <button class="btn-ghost !px-2 !py-1 text-xs" @click="adjustStock(g.goodsID)">增减库存</button>
+          </div>
+          <div class="flex items-center gap-2">
+            <button
+              class="inline-flex items-center gap-1 text-xs border rounded px-2 py-1 transition"
+              :class="g.enabled === 1 ? 'text-orange-600 border-orange-200 hover:bg-orange-50' : 'text-green-600 border-green-200 hover:bg-green-50'"
+              @click="toggle(g)"
+            >
+              {{ g.enabled === 1 ? '下架' : '上架' }}
+            </button>
+            <button class="inline-flex items-center gap-1 text-xs text-red-500 border border-red-200 rounded px-2 py-1 hover:bg-red-50 transition" @click="remove(g.goodsID)">
             <Trash2 class="h-3 w-3" /> 删除
-          </button>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card p-4 sm:p-5 mt-6">
+      <div class="flex items-center justify-between mb-3">
+        <h3 class="font-semibold text-gray-800 text-sm">实体奖品兑换申请</h3>
+        <button class="btn-ghost !px-3 !py-1.5 text-xs" @click="loadRequests">刷新</button>
+      </div>
+      <EmptyState v-if="!requestList.length" message="暂无兑换申请" />
+      <div v-else class="space-y-3">
+        <div v-for="r in requestList" :key="r.requestID" class="rounded-lg border border-gray-200 p-3">
+          <div class="flex items-start justify-between gap-2">
+            <div class="text-sm">
+              <p class="font-semibold text-gray-900">{{ r.goodsName }}</p>
+              <p class="text-xs text-brand-muted mt-1">
+                申请ID: {{ r.requestID }} · 用户: {{ r.userName || r.userID }}（{{ r.userID }}）
+              </p>
+              <p class="text-xs text-brand-muted mt-1">申请时间：{{ r.createdAt }}</p>
+              <p class="text-xs mt-1" :class="requestStatusClass(r.status)">状态：{{ requestStatusText(r.status) }}</p>
+              <p v-if="r.remark" class="text-xs text-gray-600 mt-1">备注：{{ r.remark }}</p>
+            </div>
+            <div v-if="r.status === 'pending'" class="flex items-center gap-2">
+              <button class="btn-primary !px-3 !py-1.5 text-xs" @click="processRequest(r, 'fulfilled')">标记已兑换</button>
+              <button class="btn-ghost !px-3 !py-1.5 text-xs text-red-500" @click="processRequest(r, 'rejected')">拒绝</button>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -58,6 +103,8 @@ import EmptyState from '@/components/EmptyState.vue'
 const list = ref<any[]>([])
 const loading = ref(false)
 const form = reactive({ goodsID: '', goodsName: '', goodsType: '实体奖品', needPoints: '0', currentNum: '0' })
+const stockDelta = reactive<Record<string, string>>({})
+const requestList = ref<any[]>([])
 
 async function load() {
   loading.value = true
@@ -76,5 +123,69 @@ async function remove(id: string) {
   const res = await http.delete<any, ApiResult>('/admin/prizes', { params: { goodsID: id } })
   res.success ? (ElMessage.success('已删除'), load()) : ElMessage.error(res.msg)
 }
-onMounted(load)
+
+async function adjustStock(goodsID: string) {
+  const delta = Number(stockDelta[goodsID] || '0')
+  if (!Number.isFinite(delta) || delta === 0) {
+    ElMessage.warning('请输入非 0 的库存变更值')
+    return
+  }
+  const body = new URLSearchParams({ goodsID, delta: String(delta) })
+  const res = await http.post<any, ApiResult>('/admin/prizes/stock', body)
+  if (res.success) {
+    ElMessage.success('库存已更新')
+    stockDelta[goodsID] = ''
+    load()
+  } else {
+    ElMessage.error(res.msg)
+  }
+}
+
+async function toggle(g: any) {
+  const next = g.enabled === 1 ? 0 : 1
+  const body = new URLSearchParams({ goodsID: g.goodsID, enabled: String(next) })
+  const res = await http.post<any, ApiResult>('/admin/prizes/toggle', body)
+  if (res.success) {
+    ElMessage.success(res.msg || '状态已更新')
+    load()
+  } else {
+    ElMessage.error(res.msg)
+  }
+}
+
+async function loadRequests() {
+  const res = await http.get<any, ApiResult>('/admin/exchange-requests', { params: { limit: 200 } })
+  if (res.success) requestList.value = res.data || []
+  else ElMessage.error(res.msg)
+}
+
+async function processRequest(r: any, action: 'fulfilled' | 'rejected') {
+  const body = new URLSearchParams({ requestID: String(r.requestID), action })
+  const res = await http.post<any, ApiResult>('/admin/exchange-requests/process', body)
+  if (res.success) {
+    ElMessage.success(action === 'fulfilled' ? '已标记兑换完成' : '已拒绝申请')
+    loadRequests()
+  } else {
+    ElMessage.error(res.msg)
+  }
+}
+
+function requestStatusText(status: string) {
+  if (status === 'pending') return '待处理'
+  if (status === 'fulfilled') return '已兑换'
+  if (status === 'rejected') return '已拒绝'
+  return status
+}
+
+function requestStatusClass(status: string) {
+  if (status === 'pending') return 'text-amber-600'
+  if (status === 'fulfilled') return 'text-green-600'
+  if (status === 'rejected') return 'text-red-500'
+  return 'text-brand-muted'
+}
+
+onMounted(async () => {
+  await load()
+  await loadRequests()
+})
 </script>

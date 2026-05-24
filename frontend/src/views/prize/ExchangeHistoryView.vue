@@ -13,6 +13,22 @@
       </div>
     </div>
 
+    <div class="card p-4 mb-6">
+      <h3 class="text-sm font-semibold text-gray-800 mb-3">实体奖品兑换申请状态</h3>
+      <EmptyState v-if="!loading && !exchangeRequests.length" message="暂无实体奖品兑换申请" />
+      <div v-else class="space-y-2">
+        <div v-for="r in exchangeRequests" :key="r.requestID" class="rounded-md border border-gray-200 p-3">
+          <div class="flex items-center justify-between gap-2">
+            <p class="text-sm font-medium text-gray-900">{{ r.goodsName }}</p>
+            <span class="text-xs" :class="statusClass(r.status)">{{ statusText(r.status) }}</span>
+          </div>
+          <p class="text-xs text-brand-muted mt-1">申请时间：{{ r.createdAt }}</p>
+          <p v-if="r.processedAt" class="text-xs text-brand-muted mt-1">处理时间：{{ r.processedAt }}</p>
+          <p v-if="r.remark" class="text-xs text-gray-600 mt-1">备注：{{ r.remark }}</p>
+        </div>
+      </div>
+    </div>
+
     <EmptyState v-if="!loading && !list.length" message="暂无积分记录" />
 
     <div v-else class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3" v-loading="loading">
@@ -51,6 +67,7 @@ const loading = ref(false)
 const total = ref(0)
 const page = ref(1)
 const pageSize = ref(10)
+const exchangeRequests = ref<any[]>([])
 
 const incomeTotal = computed(() => list.value.reduce((sum, item) => {
   const value = pointValue(item.pointOP)
@@ -75,10 +92,25 @@ async function load() {
   const res = await http.get<any, ApiResult>('/points/history', { params: { page: page.value } })
   if (res.success && res.data) {
     list.value = (res.data as any).list || []
+    exchangeRequests.value = (res.data as any).exchangeRequests || []
     total.value = (res.data as any).total || 0
     pageSize.value = (res.data as any).pageSize || 10
   }
   loading.value = false
+}
+
+function statusText(status: string) {
+  if (status === 'pending') return '待处理'
+  if (status === 'fulfilled') return '已兑换'
+  if (status === 'rejected') return '已拒绝'
+  return status
+}
+
+function statusClass(status: string) {
+  if (status === 'pending') return 'text-amber-600'
+  if (status === 'fulfilled') return 'text-green-600'
+  if (status === 'rejected') return 'text-red-500'
+  return 'text-brand-muted'
 }
 
 onMounted(load)
