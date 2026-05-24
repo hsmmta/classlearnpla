@@ -49,6 +49,12 @@ public class AdminApiHandler {
             warnUser(request, response);
             return;
         }
+        if ("/admin/users/profile".equals(path)) {
+            if ("GET".equals(method)) queryUserProfile(request, response);
+            else if ("POST".equals(method)) updateUserProfile(request, response);
+            else methodNotAllowed(response);
+            return;
+        }
         if ("/admin/goods".equals(path) && "POST".equals(method)) {
             addGoods(request, response);
             return;
@@ -333,6 +339,97 @@ public class AdminApiHandler {
             conn.close();
         }
         JsonResponse.write(response, JsonResponse.ok(list));
+    }
+
+    private void queryUserProfile(HttpServletRequest request, HttpServletResponse response) throws SQLException, IOException {
+        String userID = request.getParameter("userID");
+        if (userID == null || userID.trim().isEmpty()) {
+            JsonResponse.write(response, JsonResponse.fail("请提供用户手机号"));
+            return;
+        }
+        String uid = userID.trim();
+        Connection conn = DBUtil.getConnection();
+        try (PreparedStatement ps = conn.prepareStatement(
+                "SELECT userphone, userName, classID, gender, studentID, userEmail, userStatus FROM user WHERE userphone = ?")) {
+            ps.setString(1, uid);
+            ResultSet rs = ps.executeQuery();
+            if (!rs.next()) {
+                JsonResponse.write(response, JsonResponse.fail("用户不存在"));
+                return;
+            }
+            Map<String, Object> data = new HashMap<>();
+            data.put("userID", rs.getString("userphone"));
+            data.put("userName", rs.getString("userName"));
+            data.put("classID", rs.getString("classID"));
+            data.put("gender", rs.getString("gender"));
+            data.put("studentID", rs.getString("studentID"));
+            data.put("userEmail", rs.getString("userEmail"));
+            data.put("userStatus", rs.getInt("userStatus"));
+            JsonResponse.write(response, JsonResponse.ok(data));
+        } finally {
+            conn.close();
+        }
+    }
+
+    private void updateUserProfile(HttpServletRequest request, HttpServletResponse response) throws SQLException, IOException {
+        String userID = request.getParameter("userID");
+        if (userID == null || userID.trim().isEmpty()) {
+            JsonResponse.write(response, JsonResponse.fail("请提供用户手机号"));
+            return;
+        }
+        String uid = userID.trim();
+        String userName = trimParam(request.getParameter("userName"));
+        String classID = trimOrEmpty(request.getParameter("classID"));
+        String gender = trimOrEmpty(request.getParameter("gender"));
+        String studentID = trimOrEmpty(request.getParameter("studentID"));
+        String userEmail = trimOrEmpty(request.getParameter("userEmail"));
+        if (userName == null || userName.isEmpty()) {
+            JsonResponse.write(response, JsonResponse.fail("昵称不能为空"));
+            return;
+        }
+
+        Connection conn = DBUtil.getConnection();
+        conn.setAutoCommit(false);
+        try {
+            try (PreparedStatement ps = conn.prepareStatement(
+                    "UPDATE user SET userName=?, classID=?, gender=?, studentID=?, userEmail=? WHERE userphone=?")) {
+                ps.setString(1, userName);
+                ps.setString(2, classID);
+                ps.setString(3, gender);
+                ps.setString(4, studentID);
+                ps.setString(5, userEmail);
+                ps.setString(6, uid);
+                int n = ps.executeUpdate();
+                if (n == 0) {
+                    conn.rollback();
+                    JsonResponse.write(response, JsonResponse.fail("用户不存在"));
+                    return;
+                }
+            }
+            try (PreparedStatement ps = conn.prepareStatement(
+                    "UPDATE points SET userName = ? WHERE userID = ?")) {
+                ps.setString(1, userName);
+                ps.setString(2, uid);
+                ps.executeUpdate();
+            } catch (SQLException ignored) {
+            }
+            conn.commit();
+            JsonResponse.write(response, JsonResponse.ok("资料更新成功"));
+        } catch (Exception e) {
+            conn.rollback();
+            JsonResponse.write(response, JsonResponse.fail("更新失败"));
+        } finally {
+            conn.setAutoCommit(true);
+            conn.close();
+        }
+    }
+
+    private String trimParam(String value) {
+        return value == null ? null : value.trim();
+    }
+
+    private String trimOrEmpty(String value) {
+        return value == null ? "" : value.trim();
     }
 
     private int parseInt(String s, int def) {

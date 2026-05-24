@@ -63,12 +63,46 @@
           </div>
         </div>
       </div>
+
+      <div class="card p-5 lg:col-span-2">
+        <h3 class="font-semibold text-gray-800 text-sm mb-4">用户资料管理</h3>
+        <el-form label-width="90px" class="grid gap-2 sm:grid-cols-2">
+          <el-form-item label="手机号">
+            <el-input :model-value="userID" disabled />
+          </el-form-item>
+          <el-form-item label="昵称">
+            <el-input v-model="profileForm.userName" placeholder="请输入昵称" />
+          </el-form-item>
+          <el-form-item label="班级">
+            <el-input v-model="profileForm.classID" placeholder="请输入班级" />
+          </el-form-item>
+          <el-form-item label="学号">
+            <el-input v-model="profileForm.studentID" placeholder="请输入学号" />
+          </el-form-item>
+          <el-form-item label="性别">
+            <el-select v-model="profileForm.gender" placeholder="请选择">
+              <el-option label="男" value="男" />
+              <el-option label="女" value="女" />
+              <el-option label="保密" value="保密" />
+            </el-select>
+          </el-form-item>
+          <el-form-item label="邮箱">
+            <el-input v-model="profileForm.userEmail" placeholder="请输入邮箱" />
+          </el-form-item>
+        </el-form>
+        <div class="mt-3 flex items-center justify-between text-xs">
+          <span class="text-brand-muted">账号状态：{{ profileStatusText }}</span>
+          <button class="btn-primary !px-4 !py-2 text-sm justify-center" type="button" @click="saveProfile">
+            保存资料
+          </button>
+        </div>
+      </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import { Search, Coins } from '@lucide/vue'
 import { ElMessage } from 'element-plus'
 import http from '@/api/http'
@@ -84,6 +118,15 @@ const warningCount = ref<number | null>(null)
 const bannedUntil = ref<string | null>(null)
 const banDays = ref('3')
 const penaltyRecords = ref<any[]>([])
+const profileForm = ref({
+  userName: '',
+  classID: '',
+  gender: '',
+  studentID: '',
+  userEmail: '',
+  userStatus: 1,
+})
+const profileStatusText = computed(() => (profileForm.value.userStatus === 1 ? '正常' : '已禁用'))
 
 async function query() {
   if (!userID.value) return ElMessage.warning('请输入手机号')
@@ -99,6 +142,19 @@ async function query() {
     params: { userID: userID.value, limit: 20 },
   })
   if (logRes.success) penaltyRecords.value = logRes.data || []
+  const profileRes = await http.get<any, ApiResult>('/admin/users/profile', { params: { userID: userID.value } })
+  if (profileRes.success && profileRes.data) {
+    profileForm.value = {
+      userName: profileRes.data.userName || '',
+      classID: profileRes.data.classID || '',
+      gender: profileRes.data.gender || '',
+      studentID: profileRes.data.studentID || '',
+      userEmail: profileRes.data.userEmail || '',
+      userStatus: Number(profileRes.data.userStatus ?? 1),
+    }
+  } else {
+    ElMessage.error(profileRes.msg || '用户资料加载失败')
+  }
 }
 
 async function modify() {
@@ -125,5 +181,25 @@ async function unbanUser() {
   const res = await http.post<any, ApiResult>('/admin/users/unban', body)
   if (res.success) { ElMessage.success(res.msg || '解封成功'); query() }
   else ElMessage.error(res.msg)
+}
+
+async function saveProfile() {
+  if (!userID.value) return ElMessage.warning('请先查询用户')
+  if (!profileForm.value.userName.trim()) return ElMessage.warning('昵称不能为空')
+  const body = new URLSearchParams({
+    userID: userID.value,
+    userName: profileForm.value.userName,
+    classID: profileForm.value.classID,
+    gender: profileForm.value.gender,
+    studentID: profileForm.value.studentID,
+    userEmail: profileForm.value.userEmail,
+  })
+  const res = await http.post<any, ApiResult>('/admin/users/profile', body)
+  if (res.success) {
+    ElMessage.success(res.msg || '资料已更新')
+    query()
+  } else {
+    ElMessage.error(res.msg || '更新失败')
+  }
 }
 </script>

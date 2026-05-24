@@ -58,7 +58,14 @@ public class ApiRouterServlet extends HttpServlet {
             JsonResponse.write(response, HttpServletResponse.SC_NOT_FOUND, JsonResponse.fail("接口不存在"));
         } catch (Exception e) {
             e.printStackTrace();
-            JsonResponse.write(response, JsonResponse.fail("服务器错误: " + e.getMessage()));
+            if (response.isCommitted()) {
+                return;
+            }
+            try {
+                JsonResponse.write(response, JsonResponse.fail("服务器错误: " + e.getMessage()));
+            } catch (IllegalStateException ignored) {
+                // OutputStream may have already been obtained for binary responses.
+            }
         }
     }
 }

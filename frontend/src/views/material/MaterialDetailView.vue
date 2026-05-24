@@ -10,7 +10,7 @@
           </p>
           <div class="mt-4">
             <button v-if="material.materialType === 'pdf' && material.filePath" class="btn-primary" @click="openPdf">
-              <FileText class="h-4 w-4" /> 在线查看 PDF
+              <FileText class="h-4 w-4" /> 预览 PDF
             </button>
             <div v-else class="prose prose-sm max-w-none text-gray-700 leading-relaxed whitespace-pre-wrap">
               {{ material.materialContent }}
@@ -148,7 +148,7 @@
 
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { AlertTriangle, FileText, MessageSquare, Trash2 } from '@lucide/vue'
 import http from '@/api/http'
@@ -157,6 +157,7 @@ import type { ApiResult } from '@/types'
 import EmptyState from '@/components/EmptyState.vue'
 
 const route = useRoute()
+const router = useRouter()
 const store = useUserStore()
 const loading = ref(true)
 const material = ref<any>(null)
@@ -168,15 +169,7 @@ const topLevelComments = ref<any[]>([])
 const isAdmin = computed(() => store.user?.userType === 'admin')
 
 function openPdf() {
-  const url = new URL(`/api/materials/${route.params.id}/download`, window.location.origin).toString()
-  const isMobile = /Android|iPhone|iPad|iPod|HarmonyOS/i.test(navigator.userAgent)
-  if (isMobile) {
-    // WebView on some Android devices cannot render inline PDFs reliably.
-    const viewer = `https://docs.google.com/gview?embedded=1&url=${encodeURIComponent(url)}`
-    window.location.href = viewer
-    return
-  }
-  window.open(url, '_blank', 'noopener,noreferrer')
+  router.push({ name: 'materialPdfPreview', params: { id: route.params.id } })
 }
 
 async function load() {

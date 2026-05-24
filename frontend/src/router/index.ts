@@ -21,6 +21,12 @@ const router = createRouter({
           component: () => import('@/views/material/MaterialDetailView.vue'),
           meta: { allowAdmin: true },
         },
+        {
+          path: 'materials/:id/pdf',
+          name: 'materialPdfPreview',
+          component: () => import('@/views/material/MaterialPdfView.vue'),
+          meta: { allowAdmin: true },
+        },
         { path: 'materials/:id/edit', name: 'materialEdit', component: () => import('@/views/material/MaterialEditView.vue') },
         { path: 'discussion', name: 'discussion', component: () => import('@/views/discussion/DiscussionListView.vue') },
         { path: 'discussion/ask', name: 'discussionAsk', component: () => import('@/views/discussion/AskQuestionView.vue') },

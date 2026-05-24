@@ -1,14 +1,18 @@
 package org.example.api;
 
+import org.apache.pdfbox.pdmodel.PDDocument;
+import org.apache.pdfbox.rendering.PDFRenderer;
 import org.apache.commons.fileupload.FileItem;
 import org.apache.commons.fileupload.FileUploadBase;
 import org.apache.commons.fileupload.disk.DiskFileItemFactory;
 import org.apache.commons.fileupload.servlet.ServletFileUpload;
 import org.example.util.DBUtil;
 
+import javax.imageio.ImageIO;
 import javax.servlet.ServletContext;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -79,6 +83,23 @@ public class MaterialApiHandler {
                 String id = rest.substring(0, rest.length() - "/download".length());
                 download(id, response, ctx);
                 return;
+            }
+            if (rest.endsWith("/download-attachment") && "GET".equals(method)) {
+                String id = rest.substring(0, rest.length() - "/download-attachment".length());
+                downloadAttachment(id, response, ctx);
+                return;
+            }
+            if (rest.endsWith("/preview-images") && "GET".equals(method)) {
+                String id = rest.substring(0, rest.length() - "/preview-images".length());
+                listPreviewImages(id, response, ctx);
+                return;
+            }
+            if (rest.contains("/preview-images/") && "GET".equals(method)) {
+                String[] parts = rest.split("/preview-images/");
+                if (parts.length == 2) {
+                    servePreviewImage(parts[0], parts[1], response, ctx);
+                    return;
+                }
             }
             if (rest.endsWith("/comments") && "POST".equals(method)) {
                 String id = rest.substring(0, rest.length() - "/comments".length());
@@ -695,51 +716,170 @@ public class MaterialApiHandler {
     }
 
     private void download(String id, HttpServletResponse response, ServletContext ctx) throws Exception {
+        MaterialFileMeta meta = queryMaterialFileMeta(id);
+        if (meta.filePath == null) {
+            response.sendError(404);
+            return;
+        }
+        File file = resolveMaterialPdfFile(meta, ctx);
+        if (file == null || !file.exists()) {
+            response.sendError(404);
+            return;
+        }
+        response.setContentType("application/pdf");
+        String encodedTitle = java.net.URLEncoder.encode(meta.title + ".pdf", "UTF-8").replace("+", "%20");
+        response.setHeader("Content-Disposition", "inline; filename*=UTF-8''" + encodedTitle);
+        try {
+            Files.copy(file.toPath(), response.getOutputStream());
+            response.flushBuffer();
+        } catch (IOException ioe) {
+            if (isClientAbort(ioe)) {
+                // Client closed the connection while downloading/previewing PDF.
+                return;
+            }
+            throw ioe;
+        }
+    }
+
+    private void downloadAttachment(String id, HttpServletResponse response, ServletContext ctx) throws Exception {
+        MaterialFileMeta meta = queryMaterialFileMeta(id);
+        if (meta.filePath == null) {
+            response.sendError(404);
+            return;
+        }
+        File file = resolveMaterialPdfFile(meta, ctx);
+        if (file == null || !file.exists()) {
+            response.sendError(404);
+            return;
+        }
+        response.setContentType("application/pdf");
+        String encodedTitle = java.net.URLEncoder.encode(meta.title + ".pdf", "UTF-8").replace("+", "%20");
+        response.setHeader("Content-Disposition", "attachment; filename*=UTF-8''" + encodedTitle);
+        try {
+            Files.copy(file.toPath(), response.getOutputStream());
+            response.flushBuffer();
+        } catch (IOException ioe) {
+            if (isClientAbort(ioe)) {
+                return;
+            }
+            throw ioe;
+        }
+    }
+
+    private void listPreviewImages(String id, HttpServletResponse response, ServletContext ctx) throws Exception {
+        MaterialFileMeta meta = queryMaterialFileMeta(id);
+        if (meta.filePath == null) {
+            JsonResponse.write(response, JsonResponse.fail("资料不存在"));
+            return;
+        }
+        File pdfFile = resolveMaterialPdfFile(meta, ctx);
+        if (pdfFile == null || !pdfFile.exists()) {
+            JsonResponse.write(response, JsonResponse.fail("PDF 文件不存在"));
+            return;
+        }
+
+        File materialDir = new File(getMaterialPreviewDir(ctx), id);
+        ensurePreviewImages(id, pdfFile, materialDir);
+        File[] imageFiles = materialDir.listFiles((d, name) -> name.toLowerCase().endsWith(".jpg"));
+        if (imageFiles == null || imageFiles.length == 0) {
+            JsonResponse.write(response, JsonResponse.fail("预览图生成失败"));
+            return;
+        }
+        Arrays.sort(imageFiles, Comparator.comparing(File::getName));
+        List<String> urls = new ArrayList<>();
+        for (File image : imageFiles) {
+            urls.add("/api/materials/" + id + "/preview-images/" + image.getName() + "?t=" + image.lastModified());
+        }
+        Map<String, Object> data = new HashMap<>();
+        data.put("pageCount", imageFiles.length);
+        data.put("images", urls);
+        JsonResponse.write(response, JsonResponse.ok(data));
+    }
+
+    private void servePreviewImage(String id, String filename, HttpServletResponse response, ServletContext ctx) throws Exception {
+        if (filename == null || filename.contains("..") || filename.contains("/") || filename.contains("\\")) {
+            response.sendError(400);
+            return;
+        }
+        File file = new File(new File(getMaterialPreviewDir(ctx), id), filename);
+        if (!file.exists()) {
+            response.sendError(404);
+            return;
+        }
+        response.setContentType("image/jpeg");
+        try {
+            Files.copy(file.toPath(), response.getOutputStream());
+            response.flushBuffer();
+        } catch (IOException ioe) {
+            if (isClientAbort(ioe)) return;
+            throw ioe;
+        }
+    }
+
+    private void ensurePreviewImages(String materialId, File pdfFile, File outputDir) throws Exception {
+        File[] existing = outputDir.listFiles((d, name) -> name.toLowerCase().endsWith(".jpg"));
+        if (existing != null && existing.length > 0) {
+            return;
+        }
+        synchronized (("material-preview-" + materialId).intern()) {
+            existing = outputDir.listFiles((d, name) -> name.toLowerCase().endsWith(".jpg"));
+            if (existing != null && existing.length > 0) {
+                return;
+            }
+            if (!outputDir.exists() && !outputDir.mkdirs()) {
+                throw new IOException("无法创建预览目录");
+            }
+            try (PDDocument document = PDDocument.load(pdfFile)) {
+                PDFRenderer renderer = new PDFRenderer(document);
+                for (int i = 0; i < document.getNumberOfPages(); i++) {
+                    BufferedImage image = renderer.renderImageWithDPI(i, 120);
+                    File out = new File(outputDir, String.format("%04d.jpg", i + 1));
+                    ImageIO.write(image, "JPEG", out);
+                    image.flush();
+                }
+            }
+        }
+    }
+
+    private MaterialFileMeta queryMaterialFileMeta(String id) throws SQLException {
         Connection conn = DBUtil.getConnection();
-        String filePath = null;
-        String diskPath = null;
-        String title = "download";
         try {
             ensureMaterialDiskPathColumn(conn);
             try (PreparedStatement ps = conn.prepareStatement("SELECT filePath, materialTitle, diskPath FROM material WHERE materialID = ?")) {
                 ps.setString(1, id);
                 ResultSet rs = ps.executeQuery();
                 if (rs.next()) {
-                    filePath = rs.getString("filePath");
-                    title = rs.getString("materialTitle");
-                    diskPath = rs.getString("diskPath");
+                    MaterialFileMeta meta = new MaterialFileMeta();
+                    meta.filePath = rs.getString("filePath");
+                    String title = rs.getString("materialTitle");
+                    meta.title = (title == null || title.trim().isEmpty()) ? "download" : title;
+                    meta.diskPath = rs.getString("diskPath");
+                    return meta;
                 }
             }
+            return new MaterialFileMeta();
         } finally {
             conn.close();
         }
-        if (filePath == null) {
-            response.sendError(404);
-            return;
-        }
+    }
+
+    private File resolveMaterialPdfFile(MaterialFileMeta meta, ServletContext ctx) {
         File file = null;
-        if (diskPath != null && !diskPath.trim().isEmpty()) {
-            file = new File(diskPath);
+        if (meta.diskPath != null && !meta.diskPath.trim().isEmpty()) {
+            file = new File(meta.diskPath);
         }
-        if ((file == null || !file.exists()) && filePath != null && !filePath.trim().isEmpty()) {
-            file = new File(ctx.getRealPath("") + File.separator + filePath.replace("/", File.separator));
+        if ((file == null || !file.exists()) && meta.filePath != null && !meta.filePath.trim().isEmpty()) {
+            file = new File(ctx.getRealPath("") + File.separator + meta.filePath.replace("/", File.separator));
         }
-        if ((file == null || !file.exists()) && filePath != null && !filePath.trim().isEmpty()) {
-            String name = new File(filePath.replace("/", File.separator)).getName();
+        if ((file == null || !file.exists()) && meta.filePath != null && !meta.filePath.trim().isEmpty()) {
+            String name = new File(meta.filePath.replace("/", File.separator)).getName();
             file = new File(getMaterialStorageDir(ctx), name);
         }
-        if ((file == null || !file.exists()) && filePath != null && !filePath.trim().isEmpty()) {
-            String name = new File(filePath.replace("/", File.separator)).getName();
+        if ((file == null || !file.exists()) && meta.filePath != null && !meta.filePath.trim().isEmpty()) {
+            String name = new File(meta.filePath.replace("/", File.separator)).getName();
             file = new File(System.getProperty("user.dir") + File.separator + "src" + File.separator + "main" + File.separator + "webapp" + File.separator + "uploads" + File.separator + "materials", name);
         }
-        if (file == null || !file.exists()) {
-            response.sendError(404);
-            return;
-        }
-        response.setContentType("application/pdf");
-        String encodedTitle = java.net.URLEncoder.encode(title + ".pdf", "UTF-8").replace("+", "%20");
-        response.setHeader("Content-Disposition", "inline; filename*=UTF-8''" + encodedTitle);
-        Files.copy(file.toPath(), response.getOutputStream());
+        return file;
     }
 
     private Map<String, Object> rowMaterial(ResultSet rs) throws SQLException {
@@ -771,6 +911,35 @@ public class MaterialApiHandler {
             base = System.getProperty("user.dir") + File.separator + "runtime-uploads";
         }
         return new File(base, "materials");
+    }
+
+    private File getMaterialPreviewDir(ServletContext ctx) {
+        String base = System.getenv("APP_UPLOAD_DIR");
+        if (base == null || base.trim().isEmpty()) {
+            base = System.getProperty("user.dir") + File.separator + "runtime-uploads";
+        }
+        return new File(base, "material-previews");
+    }
+
+    private boolean isClientAbort(Throwable t) {
+        Throwable cur = t;
+        while (cur != null) {
+            String name = cur.getClass().getName();
+            String msg = cur.getMessage();
+            if (name.contains("ClientAbortException")) return true;
+            if (msg != null) {
+                String m = msg.toLowerCase();
+                if (m.contains("connection reset by peer") || m.contains("broken pipe")) return true;
+            }
+            cur = cur.getCause();
+        }
+        return false;
+    }
+
+    private static class MaterialFileMeta {
+        String filePath;
+        String diskPath;
+        String title = "download";
     }
 
     private void deleteOwnComment(String materialId, String commentId, HttpServletRequest request, HttpServletResponse response) throws IOException, SQLException {
