@@ -16,6 +16,9 @@
           <el-form-item label="密码">
             <el-input v-model="form.userPassword" type="password" show-password placeholder="请输入密码" />
           </el-form-item>
+          <el-form-item label="确认密码">
+            <el-input v-model="form.confirmPassword" type="password" show-password placeholder="请再次输入密码" />
+          </el-form-item>
           <el-form-item label="邮箱">
             <el-input v-model="form.userEmail" placeholder="请输入邮箱（选填）" />
           </el-form-item>
@@ -48,7 +51,7 @@ import type { ApiResult } from '@/types'
 
 const router = useRouter()
 const countdown = ref(0)
-const form = reactive({ userID: '', userName: '', userPassword: '', userEmail: '', code: '' })
+const form = reactive({ userID: '', userName: '', userPassword: '', confirmPassword: '', userEmail: '', code: '' })
 
 async function sendCode() {
   if (!form.userID) return ElMessage.warning('请输入手机号')
@@ -61,7 +64,22 @@ async function sendCode() {
 }
 
 async function onSubmit() {
-  const body = new URLSearchParams(form as any)
+  if (!form.userPassword || !form.confirmPassword) {
+    ElMessage.warning('请输入并确认密码')
+    return
+  }
+  if (form.userPassword !== form.confirmPassword) {
+    ElMessage.error('两次输入的密码不一致')
+    return
+  }
+  const body = new URLSearchParams({
+    userID: form.userID,
+    userName: form.userName,
+    userPassword: form.userPassword,
+    repassword: form.confirmPassword,
+    userEmail: form.userEmail,
+    code: form.code,
+  })
   const res = await http.post<any, ApiResult>('/auth/register', body)
   if (res.success) { ElMessage.success('注册成功，请登录'); router.push('/login') }
   else ElMessage.error(res.msg)

@@ -33,10 +33,10 @@ async function logout() {
 </script>
 
 <template>
-  <header class="sticky top-0 z-30 bg-white/90 backdrop-blur ring-1 ring-gray-100">
-    <div class="mx-auto flex max-w-6xl items-center justify-between px-4 sm:px-6 lg:px-8 h-16">
+  <header class="sticky top-0 z-30 bg-white/95 backdrop-blur ring-1 ring-gray-100">
+    <div class="mx-auto flex max-w-6xl items-center justify-between px-4 sm:px-6 lg:px-8 h-14 sm:h-16">
       <!-- Logo -->
-      <router-link to="/" class="flex items-center gap-2 font-bold text-brand-primary text-lg select-none">
+      <router-link to="/" class="flex items-center gap-2 font-bold text-brand-primary text-base sm:text-lg select-none">
         <BookOpen class="h-5 w-5 shrink-0" />
         <span>班级学习社区</span>
       </router-link>
@@ -58,7 +58,7 @@ async function logout() {
 
       <!-- Desktop user area -->
       <div class="hidden md:flex items-center gap-3">
-        <span v-if="user" class="text-sm text-gray-600 truncate max-w-[120px]">{{ user.userName }}</span>
+        <span v-if="user" class="text-sm text-gray-600 truncate max-w-[140px]">{{ user.userName }}</span>
         <button v-if="user" @click="logout" class="btn-ghost !px-3 !py-1.5 text-xs">
           <LogOut class="h-3.5 w-3.5" />
           退出
@@ -72,6 +72,7 @@ async function logout() {
         <Menu v-else class="h-5 w-5" />
       </button>
     </div>
+
   </header>
 
   <!-- Mobile full-screen drawer -->
@@ -85,7 +86,7 @@ async function logout() {
   >
     <div
       v-if="open"
-      class="fixed inset-0 z-20 flex flex-col bg-brand-dark md:hidden"
+      class="fixed inset-0 z-40 flex flex-col bg-brand-dark md:hidden"
       style="padding-top: env(safe-area-inset-top)"
     >
       <!-- Drawer header -->
@@ -111,7 +112,7 @@ async function logout() {
       </nav>
 
       <!-- Bottom user area -->
-      <div class="mt-auto px-5 pb-8" style="padding-bottom: max(2rem, env(safe-area-inset-bottom))">
+      <div class="mt-auto px-5 pb-8 app-safe-bottom">
         <div v-if="user" class="flex flex-col gap-3">
           <span class="text-white/70 text-sm">{{ user.userName }}</span>
           <button @click="logout" class="btn-secondary w-full justify-center">

@@ -8,7 +8,7 @@
 
     <EmptyState v-if="!loading && !goods.length" message="暂时没有可兑换的商品" />
 
-    <div v-else class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4" v-loading="loading">
+    <div v-else class="grid gap-3 sm:gap-4 grid-cols-2 lg:grid-cols-4" v-loading="loading">
       <div v-for="g in goods" :key="g.goodsID" class="card flex flex-col">
         <div class="flex-1 p-4">
           <div class="flex items-start justify-between gap-2 mb-2">

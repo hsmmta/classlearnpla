@@ -1,0 +1,11 @@
+import{j as l,g as m,d as s,x as d,i as o,y as t,c as p,p as u,B as _}from"./index-Cwp-n-ou.js";import{_ as e}from"./EntryCard.vue_vue_type_script_setup_true_lang-76cjOWTe.js";import{B as g}from"./book-open-C6sAGee1.js";import{M as n}from"./message-square-oWDWDl6r.js";import{G as f}from"./gift-Do4vnVh0.js";import{c as a}from"./createLucideIcon-DFgFWm8A.js";/**
+ * @license @lucide/vue v1.16.0 - ISC
+ *
+ * This source code is licensed under the ISC license.
+ * See the LICENSE file in the root directory of this source tree.
+ */const x=[["path",{d:"m6 14 1.5-2.9A2 2 0 0 1 9.24 10H20a2 2 0 0 1 1.94 2.5l-1.54 6a2 2 0 0 1-1.95 1.5H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h3.9a2 2 0 0 1 1.69.9l.81 1.2a2 2 0 0 0 1.67.9H18a2 2 0 0 1 2 2v2",key:"usdka0"}]],h=a("folder-open",x);/**
+ * @license @lucide/vue v1.16.0 - ISC
+ *
+ * This source code is licensed under the ISC license.
+ * See the LICENSE file in the root directory of this source tree.
+ */const y=[["path",{d:"M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2",key:"975kel"}],["circle",{cx:"12",cy:"7",r:"4",key:"17ys0d"}]],k=a("user",y),b={class:"bg-gradient-to-br from-brand-primary to-brand-dark px-4 pt-10 sm:pt-12 pb-14 sm:pb-16 text-center"},v={class:"text-2xl sm:text-4xl font-bold text-white tracking-tight"},B={class:"page-shell -mt-7 sm:-mt-8"},H={class:"grid gap-3 sm:gap-4 grid-cols-2 lg:grid-cols-3"},$=l({__name:"HomeView",setup(N){const c=p(()=>_().user);return(w,i)=>{var r;return u(),m("div",null,[s("div",b,[s("h1",v," 欢迎，"+d(((r=c.value)==null?void 0:r.userName)||"同学"),1),i[0]||(i[0]=s("p",{class:"mt-2 sm:mt-3 text-white/75 text-sm sm:text-lg max-w-lg mx-auto"}," 学习资料、互动讨论、积分奖励，一站搞定 ",-1))]),s("div",B,[s("div",H,[o(e,{title:"资料藏宝阁",description:"浏览和下载同学上传的学习资料",to:"/materials",icon:t(g),color:"primary"},null,8,["icon"]),o(e,{title:"班级讨论区",description:"提问、回答，分享你的想法",to:"/discussion",icon:t(n),color:"secondary"},null,8,["icon"]),o(e,{title:"我的讨论",description:"查看自己发起的讨论和审核状态",to:"/discussion/mine",icon:t(n),color:"green"},null,8,["icon"]),o(e,{title:"积分商城",description:"用积分换取心仪的商品",to:"/prizes",icon:t(f),color:"amber"},null,8,["icon"]),o(e,{title:"个人中心",description:"管理你的个人信息和密码",to:"/profile",icon:t(k),color:"green"},null,8,["icon"]),o(e,{title:"我的资料",description:"查看你上传的全部资料",to:"/materials/mine",icon:t(h),color:"primary"},null,8,["icon"])])])])}}});export{$ as default};

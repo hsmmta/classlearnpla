@@ -15,12 +15,22 @@ const router = createRouter({
         { path: 'materials', name: 'materials', component: () => import('@/views/material/MaterialListView.vue') },
         { path: 'materials/new', name: 'materialNew', component: () => import('@/views/material/MaterialUploadView.vue') },
         { path: 'materials/mine', name: 'materialMine', component: () => import('@/views/material/MaterialMineView.vue') },
-        { path: 'materials/:id', name: 'materialDetail', component: () => import('@/views/material/MaterialDetailView.vue') },
+        {
+          path: 'materials/:id',
+          name: 'materialDetail',
+          component: () => import('@/views/material/MaterialDetailView.vue'),
+          meta: { allowAdmin: true },
+        },
         { path: 'materials/:id/edit', name: 'materialEdit', component: () => import('@/views/material/MaterialEditView.vue') },
         { path: 'discussion', name: 'discussion', component: () => import('@/views/discussion/DiscussionListView.vue') },
         { path: 'discussion/ask', name: 'discussionAsk', component: () => import('@/views/discussion/AskQuestionView.vue') },
         { path: 'discussion/mine', name: 'discussionMine', component: () => import('@/views/discussion/MyDiscussionView.vue') },
-        { path: 'discussion/:id', name: 'discussionDetail', component: () => import('@/views/discussion/QuestionDetailView.vue') },
+        {
+          path: 'discussion/:id',
+          name: 'discussionDetail',
+          component: () => import('@/views/discussion/QuestionDetailView.vue'),
+          meta: { allowAdmin: true },
+        },
         { path: 'prizes', name: 'prizes', component: () => import('@/views/prize/PrizeShopView.vue') },
         { path: 'prizes/history', name: 'prizeHistory', component: () => import('@/views/prize/ExchangeHistoryView.vue') },
         { path: 'points/history', name: 'pointsHistory', component: () => import('@/views/prize/ExchangeHistoryView.vue') },
@@ -61,7 +71,7 @@ router.beforeEach(async (to) => {
   if (!store.user && !publicPaths.includes(to.path)) {
     return '/login'
   }
-  if (store.user?.userType === 'admin' && !to.path.startsWith('/admin')) {
+  if (store.user?.userType === 'admin' && !to.path.startsWith('/admin') && !to.meta.allowAdmin) {
     return '/admin'
   }
   return true

@@ -3,21 +3,21 @@
     <PageHeader title="奖品管理" description="上架或删除积分商城商品" />
 
     <!-- Add form -->
-    <div class="card p-5 mb-6">
+    <div class="card p-4 sm:p-5 mb-6">
       <h3 class="font-semibold text-gray-800 text-sm mb-4">上架新商品</h3>
-      <el-form inline @submit.prevent="add" class="flex flex-wrap gap-y-2">
-        <el-form-item label="ID"><el-input v-model="form.goodsID" placeholder="商品ID" class="!w-28" /></el-form-item>
+      <el-form @submit.prevent="add" class="grid gap-2 sm:gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        <el-form-item label="ID"><el-input v-model="form.goodsID" placeholder="商品ID" /></el-form-item>
         <el-form-item label="名称"><el-input v-model="form.goodsName" placeholder="商品名称" /></el-form-item>
         <el-form-item label="类型">
-          <el-select v-model="form.goodsType" class="!w-28">
+          <el-select v-model="form.goodsType" class="!w-full">
             <el-option label="实体奖品" value="实体奖品" />
             <el-option label="虚拟奖品" value="虚拟奖品" />
           </el-select>
         </el-form-item>
-        <el-form-item label="积分"><el-input v-model="form.needPoints" type="number" class="!w-24" /></el-form-item>
-        <el-form-item label="库存"><el-input v-model="form.currentNum" type="number" class="!w-24" /></el-form-item>
-        <el-form-item>
-          <button type="submit" class="btn-primary">
+        <el-form-item label="积分"><el-input v-model="form.needPoints" type="number" /></el-form-item>
+        <el-form-item label="库存"><el-input v-model="form.currentNum" type="number" /></el-form-item>
+        <el-form-item class="sm:col-span-2 lg:col-span-3 !mb-0">
+          <button type="submit" class="btn-primary w-full sm:w-auto justify-center">
             <Plus class="h-4 w-4" /> 上架
           </button>
         </el-form-item>
@@ -26,7 +26,7 @@
 
     <EmptyState v-if="!loading && !list.length" message="暂无商品" />
 
-    <div v-else class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4" v-loading="loading">
+    <div v-else class="grid gap-3 sm:gap-4 grid-cols-2 lg:grid-cols-4" v-loading="loading">
       <div v-for="g in list" :key="g.goodsID" class="card p-4 flex flex-col gap-2">
         <div class="flex items-start justify-between gap-2">
           <h3 class="font-semibold text-gray-900 text-sm break-words">{{ g.goodsName }}</h3>

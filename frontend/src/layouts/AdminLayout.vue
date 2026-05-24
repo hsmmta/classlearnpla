@@ -101,7 +101,7 @@ async function logout() {
       </Transition>
 
       <!-- Page content -->
-      <main class="flex-1 min-w-0 overflow-auto">
+      <main class="flex-1 min-w-0 overflow-auto app-safe-bottom">
         <router-view />
       </main>
     </div>

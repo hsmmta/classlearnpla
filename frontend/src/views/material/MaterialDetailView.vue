@@ -41,14 +41,21 @@
                   </p>
                   <div class="mt-2 flex items-center gap-3">
                     <button
-                      v-if="!c.deleted"
+                      v-if="!c.deleted && !isAdmin"
                       class="inline-flex items-center gap-1 text-xs text-brand-muted hover:text-brand-primary transition"
                       @click="startReply(c)"
                     >
                       <MessageSquare class="h-3.5 w-3.5" /> 回复
                     </button>
                     <button
-                      v-if="!c.deleted && c.userID === store.user?.userID"
+                      v-if="!c.deleted && isAdmin"
+                      class="inline-flex items-center gap-1 text-xs text-amber-600 hover:text-amber-700 transition"
+                      @click="warnComment(c)"
+                    >
+                      <AlertTriangle class="h-3.5 w-3.5" /> 警告
+                    </button>
+                    <button
+                      v-if="!c.deleted && canDeleteComment(c.userID)"
                       class="inline-flex items-center gap-1 text-xs text-red-500 hover:text-red-600 transition"
                       @click="removeComment(c.commentID)"
                     >
@@ -67,14 +74,21 @@
                     </div>
                     <div class="flex items-center gap-2">
                       <button
-                        v-if="!child.deleted"
+                        v-if="!child.deleted && !isAdmin"
                         class="inline-flex items-center gap-1 text-xs text-brand-muted hover:text-brand-primary transition"
                         @click="startReply(child)"
                       >
                         <MessageSquare class="h-3.5 w-3.5" /> 回复
                       </button>
                       <button
-                        v-if="!child.deleted && child.userID === store.user?.userID"
+                        v-if="!child.deleted && isAdmin"
+                        class="inline-flex items-center gap-1 text-xs text-amber-600 hover:text-amber-700 transition"
+                        @click="warnComment(child)"
+                      >
+                        <AlertTriangle class="h-3.5 w-3.5" /> 警告
+                      </button>
+                      <button
+                        v-if="!child.deleted && canDeleteComment(child.userID)"
                         class="inline-flex items-center gap-1 text-xs text-red-500 hover:text-red-600 transition"
                         @click="removeComment(child.commentID)"
                       >
@@ -90,7 +104,7 @@
               </div>
             </div>
           </div>
-          <div class="mt-4 flex flex-col gap-2">
+          <div v-if="!isAdmin" class="mt-4 flex flex-col gap-2">
             <div v-if="replyingTo" class="rounded-md border border-brand-primary/20 bg-brand-primary/5 px-3 py-2 text-xs text-brand-primary">
               正在回复 @{{ replyingTo.userName }}
               <button class="ml-2 underline" @click="cancelReply">取消</button>
@@ -133,10 +147,10 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { FileText, MessageSquare, Trash2 } from '@lucide/vue'
+import { AlertTriangle, FileText, MessageSquare, Trash2 } from '@lucide/vue'
 import http from '@/api/http'
 import { useUserStore } from '@/stores/user'
 import type { ApiResult } from '@/types'
@@ -151,9 +165,18 @@ const commentText = ref('')
 const posting = ref(false)
 const replyingTo = ref<any | null>(null)
 const topLevelComments = ref<any[]>([])
+const isAdmin = computed(() => store.user?.userType === 'admin')
 
 function openPdf() {
-  window.open(`/api/materials/${route.params.id}/download`, '_blank')
+  const url = new URL(`/api/materials/${route.params.id}/download`, window.location.origin).toString()
+  const isMobile = /Android|iPhone|iPad|iPod|HarmonyOS/i.test(navigator.userAgent)
+  if (isMobile) {
+    // WebView on some Android devices cannot render inline PDFs reliably.
+    const viewer = `https://docs.google.com/gview?embedded=1&url=${encodeURIComponent(url)}`
+    window.location.href = viewer
+    return
+  }
+  window.open(url, '_blank', 'noopener,noreferrer')
 }
 
 async function load() {
@@ -233,12 +256,50 @@ function cancelReply() {
 async function removeComment(commentId: number) {
   try {
     await ElMessageBox.confirm('确定删除这条评论吗？', '删除确认', { type: 'warning' })
-    const res = await http.delete<any, ApiResult>(`/materials/${route.params.id}/comments/${commentId}`)
+    const endpoint = isAdmin.value
+      ? `/materials/${route.params.id}/comments/${commentId}/admin-delete`
+      : `/materials/${route.params.id}/comments/${commentId}`
+    const res = isAdmin.value
+      ? await http.post<any, ApiResult>(endpoint)
+      : await http.delete<any, ApiResult>(endpoint)
     if (res.success) {
       ElMessage.success(res.msg || '评论已删除')
       await load()
     } else {
       ElMessage.error(res.msg || '删除失败')
+    }
+  } catch {
+    // cancel
+  }
+}
+
+function canDeleteComment(commentUserId: string) {
+  return isAdmin.value || commentUserId === store.user?.userID
+}
+
+async function warnComment(comment: any) {
+  const targetUser = comment?.userID
+  if (!targetUser) {
+    ElMessage.error('无法识别评论作者')
+    return
+  }
+  try {
+    await ElMessageBox.confirm('确认对该用户发出一次警告？', '管理员警告', { type: 'warning' })
+    const body = new URLSearchParams({
+      userID: String(targetUser),
+      reason: '资料评论区不当言论',
+    })
+    const res = await http.post<any, ApiResult>('/admin/users/warn', body)
+    if (!res.success) {
+      ElMessage.error(res.msg || '警告失败')
+      return
+    }
+    const info = (res.data || {}) as any
+    const warningCount = Number(info.warningCount ?? 0)
+    if (info.isBanned) {
+      ElMessage.success('已警告；该用户已触发封禁')
+    } else {
+      ElMessage.success(`已警告；当前警告次数：${warningCount}`)
     }
   } catch {
     // cancel

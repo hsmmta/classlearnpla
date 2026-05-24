@@ -4,9 +4,9 @@
     <div class="grid gap-6 lg:grid-cols-2">
       <div class="card p-5">
         <h3 class="font-semibold text-gray-800 text-sm mb-4">查询用户积分</h3>
-        <div class="flex gap-2 mb-4">
+        <div class="flex flex-col sm:flex-row gap-2 mb-4">
           <el-input v-model="userID" placeholder="请输入用户手机号" class="flex-1" />
-          <button class="btn-ghost" @click="query">
+          <button class="btn-ghost justify-center" @click="query">
             <Search class="h-4 w-4" /> 查询
           </button>
         </div>
@@ -18,6 +18,19 @@
           <p class="text-red-600">警告次数：<strong>{{ warningCount }}</strong></p>
           <p class="text-red-500 mt-1" v-if="bannedUntil">封禁至：{{ bannedUntil }}</p>
           <p class="text-green-600 mt-1" v-else>当前未封禁</p>
+        </div>
+        <div class="mt-4 rounded-lg border border-gray-200 bg-white p-3">
+          <h4 class="text-sm font-semibold text-gray-800 mb-2">处罚记录（最近）</h4>
+          <div v-if="!penaltyRecords.length" class="text-xs text-brand-muted">暂无处罚记录</div>
+          <div v-else class="space-y-2">
+            <div v-for="(r, idx) in penaltyRecords" :key="idx" class="rounded-md bg-gray-50 px-3 py-2 text-xs">
+              <div class="flex items-center justify-between gap-2">
+                <span class="font-medium" :class="r.pointOP === '-30' ? 'text-red-600' : 'text-gray-700'">{{ r.pointOP }}</span>
+                <span class="text-brand-muted">{{ r.time }}</span>
+              </div>
+              <p class="mt-1 text-gray-600 break-words">{{ r.detail }}</p>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -37,16 +50,16 @@
           <el-form-item label="原因">
             <el-input v-model="reason" placeholder="管理员调整" />
           </el-form-item>
-          <button class="btn-primary" type="button" @click="modify">
+          <button class="btn-primary w-full sm:w-auto justify-center" type="button" @click="modify">
             <Coins class="h-4 w-4" /> 提交修改
           </button>
         </el-form>
         <div class="mt-5 pt-4 border-t border-gray-100">
           <h4 class="text-sm font-semibold text-gray-800 mb-3">账号封禁管理</h4>
-          <div class="flex flex-wrap items-center gap-2">
-            <el-input v-model="banDays" type="number" class="!w-24" placeholder="天数" />
-            <button class="btn-secondary !px-3 !py-2 text-xs" type="button" @click="banUser">封禁用户</button>
-            <button class="btn-ghost !px-3 !py-2 text-xs" type="button" @click="unbanUser">解封用户</button>
+          <div class="flex flex-col sm:flex-row sm:flex-wrap items-stretch sm:items-center gap-2">
+            <el-input v-model="banDays" type="number" class="w-full sm:!w-24" placeholder="天数" />
+            <button class="btn-secondary !px-3 !py-2 text-xs justify-center" type="button" @click="banUser">封禁用户</button>
+            <button class="btn-ghost !px-3 !py-2 text-xs justify-center" type="button" @click="unbanUser">解封用户</button>
           </div>
         </div>
       </div>
@@ -70,6 +83,7 @@ const reason = ref('管理员调整')
 const warningCount = ref<number | null>(null)
 const bannedUntil = ref<string | null>(null)
 const banDays = ref('3')
+const penaltyRecords = ref<any[]>([])
 
 async function query() {
   if (!userID.value) return ElMessage.warning('请输入手机号')
@@ -81,6 +95,10 @@ async function query() {
     warningCount.value = penaltyRes.data.warningCount ?? 0
     bannedUntil.value = penaltyRes.data.bannedUntil || null
   }
+  const logRes = await http.get<any, ApiResult>('/admin/users/penalty-records', {
+    params: { userID: userID.value, limit: 20 },
+  })
+  if (logRes.success) penaltyRecords.value = logRes.data || []
 }
 
 async function modify() {

@@ -64,14 +64,28 @@ final class UserGovernance {
             ResultSet rs = ps.executeQuery();
             if (rs.next()) warningCount = rs.getInt("warningCount");
         }
-        if (warningCount > 3) {
+        if (warningCount >= 3) {
             Timestamp until = Timestamp.valueOf(LocalDateTime.now().plusDays(3));
             try (PreparedStatement ps = conn.prepareStatement(
-                    "UPDATE user_penalty SET bannedUntil = ? WHERE userID = ?")) {
+                    "UPDATE user_penalty SET warningCount = 0, bannedUntil = ? WHERE userID = ?")) {
                 ps.setTimestamp(1, until);
                 ps.setString(2, userID);
                 ps.executeUpdate();
             }
+            ensurePointsRow(conn, userID);
+            try (PreparedStatement ps = conn.prepareStatement(
+                    "UPDATE points SET points = GREATEST(points - 30, 0) WHERE userID = ?")) {
+                ps.setString(1, userID);
+                ps.executeUpdate();
+            }
+            try (PreparedStatement ps = conn.prepareStatement(
+                    "INSERT INTO pointop (userID, pointOP, detail, `time`) VALUES (?, '-30', ?, NOW())")) {
+                ps.setString(1, userID);
+                ps.setString(2, "警告累计达到3次，触发封禁3天并扣除30积分");
+                ps.executeUpdate();
+            } catch (SQLException ignored) {
+            }
+            warningCount = 0;
         }
         return warningCount;
     }
@@ -95,6 +109,21 @@ final class UserGovernance {
                 "INSERT INTO user_penalty (userID, warningCount, bannedUntil) VALUES (?, 0, NULL) " +
                         "ON DUPLICATE KEY UPDATE bannedUntil = NULL")) {
             ps.setString(1, userID);
+            ps.executeUpdate();
+        }
+    }
+
+    private static void ensurePointsRow(Connection conn, String userID) throws SQLException {
+        String userName = "";
+        try (PreparedStatement ps = conn.prepareStatement("SELECT userName FROM user WHERE userphone = ?")) {
+            ps.setString(1, userID);
+            ResultSet rs = ps.executeQuery();
+            if (rs.next()) userName = rs.getString("userName");
+        }
+        try (PreparedStatement ps = conn.prepareStatement(
+                "INSERT INTO points (userID, userName, points) VALUES (?, ?, 0) ON DUPLICATE KEY UPDATE userName = VALUES(userName)")) {
+            ps.setString(1, userID);
+            ps.setString(2, userName == null ? "" : userName);
             ps.executeUpdate();
         }
     }

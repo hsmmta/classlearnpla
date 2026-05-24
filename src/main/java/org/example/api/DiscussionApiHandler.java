@@ -61,6 +61,17 @@ public class DiscussionApiHandler {
         }
         if (path.startsWith("/questions/")) {
             String rest = path.substring("/questions/".length());
+            if (rest.contains("/comments/") && rest.endsWith("/admin-delete") && "POST".equals(method)) {
+                if (!SessionHelper.isAdmin(request)) {
+                    JsonResponse.write(response, HttpServletResponse.SC_FORBIDDEN, JsonResponse.fail("无权限"));
+                    return;
+                }
+                String[] parts = rest.split("/");
+                if (parts.length >= 4) {
+                    adminDeleteComment(parts[0], parts[2], response);
+                    return;
+                }
+            }
             if (rest.contains("/comments/") && "DELETE".equals(method)) {
                 String[] parts = rest.split("/");
                 if (parts.length >= 3) {
@@ -756,6 +767,11 @@ public class DiscussionApiHandler {
     private void adminDeleteQuestion(String qid, HttpServletResponse response) throws SQLException, IOException {
         Connection conn = DBUtil.getConnection();
         try {
+            try (PreparedStatement ps = conn.prepareStatement("DELETE FROM question_comment_like WHERE questionID = ?")) {
+                ps.setString(1, qid);
+                ps.executeUpdate();
+            } catch (SQLException ignored) {
+            }
             try (PreparedStatement ps = conn.prepareStatement("DELETE FROM question_comment WHERE questionID = ?")) {
                 ps.setString(1, qid);
                 ps.executeUpdate();
@@ -776,6 +792,115 @@ public class DiscussionApiHandler {
             conn.close();
         }
         JsonResponse.write(response, JsonResponse.ok("管理员已删除帖子"));
+    }
+
+    private void adminDeleteComment(String qid, String commentId, HttpServletResponse response) throws SQLException, IOException {
+        int cid;
+        try {
+            cid = Integer.parseInt(commentId);
+        } catch (Exception e) {
+            JsonResponse.write(response, JsonResponse.fail("评论参数错误"));
+            return;
+        }
+        Connection conn = DBUtil.getConnection();
+        try {
+            ensureQuestionCommentReplyColumns(conn);
+            conn.setAutoCommit(false);
+            Integer parentCommentID = null;
+            try (PreparedStatement ps = conn.prepareStatement(
+                    "SELECT parentCommentID FROM question_comment WHERE questionID = ? AND commentID = ? FOR UPDATE")) {
+                ps.setString(1, qid);
+                ps.setInt(2, cid);
+                ResultSet rs = ps.executeQuery();
+                if (rs.next()) {
+                    Object parentObj = rs.getObject("parentCommentID");
+                    if (parentObj instanceof Number) {
+                        parentCommentID = ((Number) parentObj).intValue();
+                    }
+                }
+            }
+            if (parentCommentID == null) {
+                // Either root comment (NULL parent) or not found; verify existence.
+                try (PreparedStatement ps = conn.prepareStatement(
+                        "SELECT 1 FROM question_comment WHERE questionID = ? AND commentID = ?")) {
+                    ps.setString(1, qid);
+                    ps.setInt(2, cid);
+                    ResultSet rs = ps.executeQuery();
+                    if (!rs.next()) {
+                        conn.rollback();
+                        JsonResponse.write(response, JsonResponse.fail("评论不存在"));
+                        return;
+                    }
+                }
+            }
+
+            boolean isRoot = parentCommentID == null || parentCommentID == 0;
+            if (isRoot) {
+                try (PreparedStatement ps = conn.prepareStatement(
+                        "UPDATE question SET bestAnswerID = NULL WHERE questionID = ? AND (bestAnswerID = ? OR bestAnswerID IN (" +
+                                "SELECT commentID FROM (SELECT commentID FROM question_comment WHERE questionID = ? AND parentCommentID = ?) t" +
+                                "))")) {
+                    ps.setString(1, qid);
+                    ps.setInt(2, cid);
+                    ps.setString(3, qid);
+                    ps.setInt(4, cid);
+                    ps.executeUpdate();
+                }
+                try (PreparedStatement ps = conn.prepareStatement(
+                        "DELETE FROM question_comment_like WHERE questionID = ? AND (commentID = ? OR commentID IN (" +
+                                "SELECT commentID FROM (SELECT commentID FROM question_comment WHERE questionID = ? AND parentCommentID = ?) t" +
+                                "))")) {
+                    ps.setString(1, qid);
+                    ps.setInt(2, cid);
+                    ps.setString(3, qid);
+                    ps.setInt(4, cid);
+                    ps.executeUpdate();
+                } catch (SQLException ignored) {
+                }
+                try (PreparedStatement ps = conn.prepareStatement(
+                        "DELETE FROM question_comment WHERE questionID = ? AND (commentID = ? OR parentCommentID = ?)")) {
+                    ps.setString(1, qid);
+                    ps.setInt(2, cid);
+                    ps.setInt(3, cid);
+                    ps.executeUpdate();
+                }
+                conn.commit();
+                JsonResponse.write(response, JsonResponse.ok("评论及其回复已删除"));
+            } else {
+                try (PreparedStatement ps = conn.prepareStatement(
+                        "UPDATE question SET bestAnswerID = NULL WHERE questionID = ? AND bestAnswerID = ?")) {
+                    ps.setString(1, qid);
+                    ps.setInt(2, cid);
+                    ps.executeUpdate();
+                }
+                try (PreparedStatement ps = conn.prepareStatement(
+                        "DELETE FROM question_comment_like WHERE questionID = ? AND commentID = ?")) {
+                    ps.setString(1, qid);
+                    ps.setInt(2, cid);
+                    ps.executeUpdate();
+                } catch (SQLException ignored) {
+                }
+                try (PreparedStatement ps = conn.prepareStatement(
+                        "DELETE FROM question_comment WHERE questionID = ? AND commentID = ?")) {
+                    ps.setString(1, qid);
+                    ps.setInt(2, cid);
+                    int n = ps.executeUpdate();
+                    if (n == 0) {
+                        conn.rollback();
+                        JsonResponse.write(response, JsonResponse.fail("评论不存在"));
+                        return;
+                    }
+                }
+                conn.commit();
+                JsonResponse.write(response, JsonResponse.ok("评论已删除"));
+            }
+        } catch (Exception e) {
+            conn.rollback();
+            JsonResponse.write(response, JsonResponse.fail("删除失败"));
+        } finally {
+            conn.setAutoCommit(true);
+            conn.close();
+        }
     }
 
     private void deleteOwnQuestion(String qid, HttpServletRequest request, HttpServletResponse response) throws SQLException, IOException {

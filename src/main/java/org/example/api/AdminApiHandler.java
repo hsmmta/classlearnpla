@@ -33,12 +33,20 @@ public class AdminApiHandler {
             queryPenalty(request, response);
             return;
         }
+        if ("/admin/users/penalty-records".equals(path) && "GET".equals(method)) {
+            queryPenaltyRecords(request, response);
+            return;
+        }
         if ("/admin/users/ban".equals(path) && "POST".equals(method)) {
             banUser(request, response);
             return;
         }
         if ("/admin/users/unban".equals(path) && "POST".equals(method)) {
             unbanUser(request, response);
+            return;
+        }
+        if ("/admin/users/warn".equals(path) && "POST".equals(method)) {
+            warnUser(request, response);
             return;
         }
         if ("/admin/goods".equals(path) && "POST".equals(method)) {
@@ -206,7 +214,17 @@ public class AdminApiHandler {
         }
         Connection conn = DBUtil.getConnection();
         try {
-            UserGovernance.banUser(conn, userID.trim(), Math.max(days, 1));
+            String uid = userID.trim();
+            int banDays = Math.max(days, 1);
+            UserGovernance.banUser(conn, uid, banDays);
+            try (PreparedStatement ps = conn.prepareStatement(
+                    "INSERT INTO pointop (userID, pointOP, detail, `time`) VALUES (?, '0', ?, ?)")) {
+                ps.setString(1, uid);
+                ps.setString(2, "管理员手动封禁 " + banDays + " 天");
+                ps.setTimestamp(3, Timestamp.valueOf(LocalDateTime.now()));
+                ps.executeUpdate();
+            } catch (SQLException ignored) {
+            }
             JsonResponse.write(response, JsonResponse.ok("封禁成功"));
         } finally {
             conn.close();
@@ -221,11 +239,100 @@ public class AdminApiHandler {
         }
         Connection conn = DBUtil.getConnection();
         try {
-            UserGovernance.unbanUser(conn, userID.trim());
+            String uid = userID.trim();
+            UserGovernance.unbanUser(conn, uid);
+            try (PreparedStatement ps = conn.prepareStatement(
+                    "INSERT INTO pointop (userID, pointOP, detail, `time`) VALUES (?, '0', '管理员手动解封', ?)")) {
+                ps.setString(1, uid);
+                ps.setTimestamp(2, Timestamp.valueOf(LocalDateTime.now()));
+                ps.executeUpdate();
+            } catch (SQLException ignored) {
+            }
             JsonResponse.write(response, JsonResponse.ok("解封成功"));
         } finally {
             conn.close();
         }
+    }
+
+    private void warnUser(HttpServletRequest request, HttpServletResponse response) throws SQLException, IOException {
+        String userID = request.getParameter("userID");
+        String reason = request.getParameter("reason");
+        if (userID == null || userID.trim().isEmpty()) {
+            JsonResponse.write(response, JsonResponse.fail("请提供用户手机号"));
+            return;
+        }
+        String uid = userID.trim();
+        Connection conn = DBUtil.getConnection();
+        try {
+            try (PreparedStatement ps = conn.prepareStatement("SELECT 1 FROM user WHERE userphone = ?")) {
+                ps.setString(1, uid);
+                ResultSet rs = ps.executeQuery();
+                if (!rs.next()) {
+                    JsonResponse.write(response, JsonResponse.fail("用户不存在"));
+                    return;
+                }
+            }
+            try (PreparedStatement ps = conn.prepareStatement("SELECT 1 FROM admin WHERE adminID = ?")) {
+                ps.setString(1, uid);
+                ResultSet rs = ps.executeQuery();
+                if (rs.next()) {
+                    JsonResponse.write(response, JsonResponse.fail("不能警告管理员账号"));
+                    return;
+                }
+            }
+
+            int warningCount = UserGovernance.increaseWarningAndMaybeBan(conn, uid);
+            String detail = "管理员警告："
+                    + (reason == null || reason.trim().isEmpty() ? "评论区不当言论" : reason.trim())
+                    + "；当前警告次数：" + warningCount;
+            try (PreparedStatement ps = conn.prepareStatement(
+                    "INSERT INTO pointop (userID, pointOP, detail, `time`) VALUES (?, '0', ?, ?)")) {
+                ps.setString(1, uid);
+                ps.setString(2, detail);
+                ps.setTimestamp(3, Timestamp.valueOf(LocalDateTime.now()));
+                ps.executeUpdate();
+            } catch (SQLException ignored) {
+            }
+
+            Map<String, Object> penalty = UserGovernance.queryPenalty(conn, uid);
+            JsonResponse.write(response, JsonResponse.ok(penalty));
+        } catch (Exception e) {
+            e.printStackTrace();
+            JsonResponse.write(response, JsonResponse.fail("警告失败：" + e.getMessage()));
+        } finally {
+            conn.close();
+        }
+    }
+
+    private void queryPenaltyRecords(HttpServletRequest request, HttpServletResponse response) throws SQLException, IOException {
+        String userID = request.getParameter("userID");
+        int limit = parseInt(request.getParameter("limit"), 20);
+        if (userID == null || userID.trim().isEmpty()) {
+            JsonResponse.write(response, JsonResponse.fail("请提供用户手机号"));
+            return;
+        }
+        int safeLimit = Math.max(1, Math.min(limit, 100));
+        Connection conn = DBUtil.getConnection();
+        List<Map<String, Object>> list = new ArrayList<>();
+        try (PreparedStatement ps = conn.prepareStatement(
+                "SELECT pointOP, detail, `time` FROM pointop " +
+                        "WHERE userID = ? AND (" +
+                        "pointOP = '-30' OR detail LIKE '%警告%' OR detail LIKE '%封禁%' OR detail LIKE '%惩罚%' OR detail LIKE '%处罚%'" +
+                        ") ORDER BY `time` DESC LIMIT ?")) {
+            ps.setString(1, userID.trim());
+            ps.setInt(2, safeLimit);
+            ResultSet rs = ps.executeQuery();
+            while (rs.next()) {
+                Map<String, Object> row = new HashMap<>();
+                row.put("pointOP", rs.getString("pointOP"));
+                row.put("detail", rs.getString("detail"));
+                row.put("time", rs.getTimestamp("time"));
+                list.add(row);
+            }
+        } finally {
+            conn.close();
+        }
+        JsonResponse.write(response, JsonResponse.ok(list));
     }
 
     private int parseInt(String s, int def) {

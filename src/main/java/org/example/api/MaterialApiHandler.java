@@ -57,6 +57,17 @@ public class MaterialApiHandler {
 
         if (path.startsWith("/materials/")) {
             String rest = path.substring("/materials/".length());
+            if (rest.contains("/comments/") && rest.endsWith("/admin-delete") && "POST".equals(method)) {
+                if (!SessionHelper.isAdmin(request)) {
+                    JsonResponse.write(response, HttpServletResponse.SC_FORBIDDEN, JsonResponse.fail("无权限"));
+                    return;
+                }
+                String[] parts = rest.split("/");
+                if (parts.length >= 4) {
+                    adminDeleteComment(parts[0], parts[2], response);
+                    return;
+                }
+            }
             if (rest.contains("/comments/") && "DELETE".equals(method)) {
                 String[] parts = rest.split("/");
                 if (parts.length >= 3) {
@@ -293,29 +304,37 @@ public class MaterialApiHandler {
         }
         String materialID = UUID.randomUUID().toString();
         String filePath = null;
+        String diskPath = null;
         if ("pdf".equals(materialType)) {
             if (pdfFile == null) {
                 JsonResponse.write(response, JsonResponse.fail("请上传 PDF"));
                 return;
             }
-            String uploadPath = ctx.getRealPath("") + File.separator + UPLOAD_DIR;
+            File storageDir = getMaterialStorageDir(ctx);
+            String uploadPath = storageDir.getAbsolutePath();
             new File(uploadPath).mkdirs();
             String saved = materialID + ".pdf";
-            pdfFile.write(new File(uploadPath + File.separator + saved));
+            File savedFile = new File(uploadPath + File.separator + saved);
+            pdfFile.write(savedFile);
             filePath = UPLOAD_DIR + "/" + saved;
+            diskPath = savedFile.getAbsolutePath();
         }
         Connection conn = DBUtil.getConnection();
-        try (PreparedStatement ps = conn.prepareStatement(
-                "INSERT INTO material (materialID, materialTitle, materialContent, userID, uploaderName, materialSubject, materialState, materialType, filePath) VALUES (?, ?, ?, ?, ?, ?, '待审核', ?, ?)")) {
-            ps.setString(1, materialID);
-            ps.setString(2, materialTitle);
-            ps.setString(3, materialContent);
-            ps.setString(4, userID);
-            ps.setString(5, userName);
-            ps.setString(6, materialSubject);
-            ps.setString(7, materialType);
-            ps.setString(8, filePath);
-            ps.executeUpdate();
+        try {
+            ensureMaterialDiskPathColumn(conn);
+            try (PreparedStatement ps = conn.prepareStatement(
+                    "INSERT INTO material (materialID, materialTitle, materialContent, userID, uploaderName, materialSubject, materialState, materialType, filePath, diskPath) VALUES (?, ?, ?, ?, ?, ?, '待审核', ?, ?, ?)")) {
+                ps.setString(1, materialID);
+                ps.setString(2, materialTitle);
+                ps.setString(3, materialContent);
+                ps.setString(4, userID);
+                ps.setString(5, userName);
+                ps.setString(6, materialSubject);
+                ps.setString(7, materialType);
+                ps.setString(8, filePath);
+                ps.setString(9, diskPath);
+                ps.executeUpdate();
+            }
         } finally {
             conn.close();
         }
@@ -537,8 +556,77 @@ public class MaterialApiHandler {
         JsonResponse.write(response, JsonResponse.ok("管理员已删除资料"));
     }
 
+    private void adminDeleteComment(String materialId, String commentId, HttpServletResponse response) throws IOException, SQLException {
+        int cid;
+        try {
+            cid = Integer.parseInt(commentId);
+        } catch (Exception e) {
+            JsonResponse.write(response, JsonResponse.fail("评论参数错误"));
+            return;
+        }
+        Connection conn = DBUtil.getConnection();
+        try {
+            ensureCommentReplyColumns(conn);
+            conn.setAutoCommit(false);
+            Integer parentCommentID = null;
+            boolean exists = false;
+            try (PreparedStatement ps = conn.prepareStatement(
+                    "SELECT parentCommentID FROM comment WHERE materialID = ? AND commentID = ? FOR UPDATE")) {
+                ps.setString(1, materialId);
+                ps.setInt(2, cid);
+                ResultSet rs = ps.executeQuery();
+                if (rs.next()) {
+                    exists = true;
+                    Object parentObj = rs.getObject("parentCommentID");
+                    if (parentObj instanceof Number) {
+                        parentCommentID = ((Number) parentObj).intValue();
+                    }
+                }
+            }
+            if (!exists) {
+                conn.rollback();
+                JsonResponse.write(response, JsonResponse.fail("评论不存在"));
+                return;
+            }
+            boolean isRoot = parentCommentID == null || parentCommentID == 0;
+            if (isRoot) {
+                try (PreparedStatement ps = conn.prepareStatement(
+                        "DELETE FROM comment WHERE materialID = ? AND (commentID = ? OR parentCommentID = ?)")) {
+                    ps.setString(1, materialId);
+                    ps.setInt(2, cid);
+                    ps.setInt(3, cid);
+                    ps.executeUpdate();
+                }
+                conn.commit();
+                JsonResponse.write(response, JsonResponse.ok("评论及其回复已删除"));
+            } else {
+                try (PreparedStatement ps = conn.prepareStatement(
+                        "DELETE FROM comment WHERE materialID = ? AND commentID = ?")) {
+                    ps.setString(1, materialId);
+                    ps.setInt(2, cid);
+                    ps.executeUpdate();
+                }
+                conn.commit();
+                JsonResponse.write(response, JsonResponse.ok("评论已删除"));
+            }
+        } catch (Exception e) {
+            conn.rollback();
+            JsonResponse.write(response, JsonResponse.fail("删除失败"));
+        } finally {
+            conn.setAutoCommit(true);
+            conn.close();
+        }
+    }
+
     private void ensureMaterialRewardColumn(Connection conn) throws SQLException {
         try (PreparedStatement ps = conn.prepareStatement("ALTER TABLE material ADD COLUMN rewardGranted TINYINT(1) NOT NULL DEFAULT 0")) {
+            ps.executeUpdate();
+        } catch (SQLException ignored) {
+        }
+    }
+
+    private void ensureMaterialDiskPathColumn(Connection conn) throws SQLException {
+        try (PreparedStatement ps = conn.prepareStatement("ALTER TABLE material ADD COLUMN diskPath VARCHAR(1024) NULL")) {
             ps.executeUpdate();
         } catch (SQLException ignored) {
         }
@@ -609,13 +697,18 @@ public class MaterialApiHandler {
     private void download(String id, HttpServletResponse response, ServletContext ctx) throws Exception {
         Connection conn = DBUtil.getConnection();
         String filePath = null;
+        String diskPath = null;
         String title = "download";
-        try (PreparedStatement ps = conn.prepareStatement("SELECT filePath, materialTitle FROM material WHERE materialID = ?")) {
-            ps.setString(1, id);
-            ResultSet rs = ps.executeQuery();
-            if (rs.next()) {
-                filePath = rs.getString("filePath");
-                title = rs.getString("materialTitle");
+        try {
+            ensureMaterialDiskPathColumn(conn);
+            try (PreparedStatement ps = conn.prepareStatement("SELECT filePath, materialTitle, diskPath FROM material WHERE materialID = ?")) {
+                ps.setString(1, id);
+                ResultSet rs = ps.executeQuery();
+                if (rs.next()) {
+                    filePath = rs.getString("filePath");
+                    title = rs.getString("materialTitle");
+                    diskPath = rs.getString("diskPath");
+                }
             }
         } finally {
             conn.close();
@@ -624,8 +717,22 @@ public class MaterialApiHandler {
             response.sendError(404);
             return;
         }
-        File file = new File(ctx.getRealPath("") + File.separator + filePath.replace("/", File.separator));
-        if (!file.exists()) {
+        File file = null;
+        if (diskPath != null && !diskPath.trim().isEmpty()) {
+            file = new File(diskPath);
+        }
+        if ((file == null || !file.exists()) && filePath != null && !filePath.trim().isEmpty()) {
+            file = new File(ctx.getRealPath("") + File.separator + filePath.replace("/", File.separator));
+        }
+        if ((file == null || !file.exists()) && filePath != null && !filePath.trim().isEmpty()) {
+            String name = new File(filePath.replace("/", File.separator)).getName();
+            file = new File(getMaterialStorageDir(ctx), name);
+        }
+        if ((file == null || !file.exists()) && filePath != null && !filePath.trim().isEmpty()) {
+            String name = new File(filePath.replace("/", File.separator)).getName();
+            file = new File(System.getProperty("user.dir") + File.separator + "src" + File.separator + "main" + File.separator + "webapp" + File.separator + "uploads" + File.separator + "materials", name);
+        }
+        if (file == null || !file.exists()) {
             response.sendError(404);
             return;
         }
@@ -656,6 +763,14 @@ public class MaterialApiHandler {
         m.put("filePath", rs.getString("filePath"));
         m.put("userID", rs.getString("userID"));
         return m;
+    }
+
+    private File getMaterialStorageDir(ServletContext ctx) {
+        String base = System.getenv("APP_UPLOAD_DIR");
+        if (base == null || base.trim().isEmpty()) {
+            base = System.getProperty("user.dir") + File.separator + "runtime-uploads";
+        }
+        return new File(base, "materials");
     }
 
     private void deleteOwnComment(String materialId, String commentId, HttpServletRequest request, HttpServletResponse response) throws IOException, SQLException {

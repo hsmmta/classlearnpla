@@ -4,10 +4,12 @@
   "description": "班级学习社区 Android 壳 App（Capacitor）",
   "private": true,
   "scripts": {
-    "build": "echo Static web served from remote server.url",
+    "build": "echo Remote mode: Vue assets served by backend (server.url)",
     "cap:sync": "npx cap sync android",
     "cap:open": "npx cap open android",
-    "android:debug": "cd android && gradlew.bat assembleDebug"
+    "android:debug": "cd android && gradlew.bat assembleDebug",
+    "android:run": "cd android && gradlew.bat installDebug",
+    "android:clean": "cd android && gradlew.bat clean"
   },
   "dependencies": {
     "@capacitor/android": "^6.2.0",

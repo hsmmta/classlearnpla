@@ -1,17 +1,17 @@
 <template>
   <div>
     <!-- Hero -->
-    <div class="bg-gradient-to-br from-brand-primary to-brand-dark px-4 pt-12 pb-16 text-center">
-      <h1 class="text-3xl sm:text-4xl font-bold text-white tracking-tight">
+    <div class="bg-gradient-to-br from-brand-primary to-brand-dark px-4 pt-10 sm:pt-12 pb-14 sm:pb-16 text-center">
+      <h1 class="text-2xl sm:text-4xl font-bold text-white tracking-tight">
         欢迎，{{ user?.userName || '同学' }}
       </h1>
-      <p class="mt-3 text-white/70 text-base sm:text-lg max-w-lg mx-auto">
+      <p class="mt-2 sm:mt-3 text-white/75 text-sm sm:text-lg max-w-lg mx-auto">
         学习资料、互动讨论、积分奖励，一站搞定
       </p>
     </div>
     <!-- Entry cards -->
-    <div class="page-shell -mt-8">
-      <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+    <div class="page-shell -mt-7 sm:-mt-8">
+      <div class="grid gap-3 sm:gap-4 grid-cols-2 lg:grid-cols-3">
         <EntryCard
           title="资料藏宝阁"
           description="浏览和下载同学上传的学习资料"
