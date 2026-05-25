@@ -179,31 +179,42 @@ public class AuthApiHandler {
                 pstmt = null;
                 rs = null;
                 if (status == -1) {
-                    pstmt = conn.prepareStatement(
-                            "UPDATE user SET userPassword=?, userName=?, classID=?, studentID=?, gender=?, userEmail=?, userStatus=1 WHERE userphone=?");
-                    pstmt.setString(1, userPassword);
-                    pstmt.setString(2, userName);
-                    pstmt.setString(3, classID == null ? "" : classID);
-                    pstmt.setString(4, studentID == null ? "" : studentID);
-                    pstmt.setString(5, gender == null ? "" : gender);
-                    pstmt.setString(6, userEmail == null ? "" : userEmail);
-                    pstmt.setString(7, userID);
-                    pstmt.executeUpdate();
-                    DBUtil.close(null, pstmt);
-                    pstmt = null;
+                    conn.setAutoCommit(false);
                     try {
-                        PreparedStatement pp = conn.prepareStatement(
-                                "INSERT INTO points (userID, userName, points) VALUES (?, ?, 0) " +
-                                        "ON DUPLICATE KEY UPDATE userName = VALUES(userName)");
-                        pp.setString(1, userID);
-                        pp.setString(2, userName);
-                        pp.executeUpdate();
-                        pp.close();
-                    } catch (SQLException ignored) {
+                        UserDataPurgeUtil.purge(conn, userID);
+                        pstmt = conn.prepareStatement(
+                                "UPDATE user SET userPassword=?, userName=?, classID=?, studentID=?, gender=?, userEmail=?, userStatus=1 WHERE userphone=?");
+                        pstmt.setString(1, userPassword);
+                        pstmt.setString(2, userName);
+                        pstmt.setString(3, classID == null ? "" : classID);
+                        pstmt.setString(4, studentID == null ? "" : studentID);
+                        pstmt.setString(5, gender == null ? "" : gender);
+                        pstmt.setString(6, userEmail == null ? "" : userEmail);
+                        pstmt.setString(7, userID);
+                        pstmt.executeUpdate();
+                        DBUtil.close(null, pstmt);
+                        pstmt = null;
+                        try {
+                            PreparedStatement pp = conn.prepareStatement(
+                                    "INSERT INTO points (userID, userName, points) VALUES (?, ?, 0) " +
+                                            "ON DUPLICATE KEY UPDATE userName = VALUES(userName)");
+                            pp.setString(1, userID);
+                            pp.setString(2, userName);
+                            pp.executeUpdate();
+                            pp.close();
+                        } catch (SQLException ignored) {
+                        }
+                        conn.commit();
+                        session.removeAttribute("code");
+                        JsonResponse.write(response, JsonResponse.ok("注册成功（已恢复原注销账号且历史数据已清空）"));
+                        return;
+                    } catch (Exception e) {
+                        conn.rollback();
+                        JsonResponse.write(response, JsonResponse.fail("注册失败: " + e.getMessage()));
+                        return;
+                    } finally {
+                        conn.setAutoCommit(true);
                     }
-                    session.removeAttribute("code");
-                    JsonResponse.write(response, JsonResponse.ok("注册成功（已恢复原注销账号）"));
-                    return;
                 }
                 JsonResponse.write(response, JsonResponse.fail("该手机号已注册"));
                 return;

@@ -242,14 +242,25 @@ public class ProfileApiHandler {
             conn.close();
         }
         conn = DBUtil.getConnection();
-        try (PreparedStatement ps = conn.prepareStatement("UPDATE user SET userStatus = -1 WHERE userphone = ?")) {
-            ps.setString(1, userID);
-            ps.executeUpdate();
+        conn.setAutoCommit(false);
+        try {
+            UserDataPurgeUtil.purge(conn, userID);
+            try (PreparedStatement ps = conn.prepareStatement(
+                    "UPDATE user SET userStatus = -1, userName = '', classID = '', gender = '', studentID = '', userEmail = '' WHERE userphone = ?")) {
+                ps.setString(1, userID);
+                ps.executeUpdate();
+            }
+            conn.commit();
+        } catch (Exception e) {
+            conn.rollback();
+            JsonResponse.write(response, JsonResponse.fail("账号注销失败"));
+            return;
         } finally {
+            conn.setAutoCommit(true);
             conn.close();
         }
         request.getSession().invalidate();
-        JsonResponse.write(response, JsonResponse.ok("账号已注销"));
+        JsonResponse.write(response, JsonResponse.ok("账号已注销，历史数据已清空"));
     }
 
     private void sendResetCode(HttpServletRequest request, HttpServletResponse response) throws IOException {

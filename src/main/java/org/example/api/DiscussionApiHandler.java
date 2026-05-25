@@ -119,7 +119,7 @@ public class DiscussionApiHandler {
                 return;
             }
             if ("GET".equals(method)) {
-                getQuestion(rest, response);
+                getQuestion(rest, request, response);
                 return;
             }
         }
@@ -231,16 +231,21 @@ public class DiscussionApiHandler {
         JsonResponse.write(response, JsonResponse.ok(list));
     }
 
-    private void getQuestion(String id, HttpServletResponse response) throws SQLException, IOException {
+    private void getQuestion(String id, HttpServletRequest request, HttpServletResponse response) throws SQLException, IOException {
         Connection conn = DBUtil.getConnection();
         Map<String, Object> question = null;
         List<Map<String, Object>> comments = new ArrayList<>();
         List<String> imageUrls = new ArrayList<>();
         try {
             ensureQuestionImageTable(conn);
+            boolean isAdmin = SessionHelper.isAdmin(request);
+            String currentUserId = SessionHelper.getUserId(request);
             try (PreparedStatement ps = conn.prepareStatement(
-                    "SELECT q.*, u.userName FROM question q JOIN user u ON q.userID = u.userphone WHERE q.questionID = ? AND q.questionState = '审核通过'")) {
+                    "SELECT q.*, u.userName FROM question q JOIN user u ON q.userID = u.userphone " +
+                            "WHERE q.questionID = ? AND (q.questionState = '审核通过' OR q.userID = ? OR ? = 1)")) {
                 ps.setString(1, id);
+                ps.setString(2, currentUserId == null ? "" : currentUserId);
+                ps.setInt(3, isAdmin ? 1 : 0);
                 ResultSet rs = ps.executeQuery();
                 if (rs.next()) {
                     question = new HashMap<>();
