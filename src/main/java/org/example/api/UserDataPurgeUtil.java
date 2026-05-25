@@ -15,14 +15,16 @@ final class UserDataPurgeUtil {
                         "SELECT commentID FROM (SELECT commentID FROM question_comment WHERE userID = ?) t" +
                         ")", userID);
         execIgnore(conn,
-                "DELETE FROM question_comment_like WHERE commentID IN (" +
+                "DELETE FROM question_comment_likes WHERE commentID IN (" +
                         "SELECT commentID FROM (SELECT commentID FROM question_comment WHERE userID = ?) t" +
                         ")", userID);
         execIgnore(conn,
-                "DELETE FROM question_comment_like WHERE questionID IN (" +
-                        "SELECT questionID FROM (SELECT questionID FROM question WHERE userID = ?) t" +
+                "DELETE FROM question_comment_likes WHERE commentID IN (" +
+                        "SELECT commentID FROM (SELECT commentID FROM question_comment WHERE questionID IN (" +
+                        "SELECT questionID FROM question WHERE userID = ?" +
+                        ")) t" +
                         ")", userID);
-        execIgnore(conn, "DELETE FROM question_comment_like WHERE userID = ?", userID);
+        execIgnore(conn, "DELETE FROM question_comment_likes WHERE userID = ?", userID);
         execIgnore(conn,
                 "DELETE FROM question_comment WHERE questionID IN (" +
                         "SELECT questionID FROM (SELECT questionID FROM question WHERE userID = ?) t" +

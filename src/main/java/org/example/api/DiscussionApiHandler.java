@@ -504,20 +504,17 @@ public class DiscussionApiHandler {
         try {
             // 每个用户对同一条回复仅允许点赞一次
             try (PreparedStatement ps = conn.prepareStatement(
-                    "CREATE TABLE IF NOT EXISTS question_comment_like (" +
-                            "questionID VARCHAR(64) NOT NULL," +
+                    "CREATE TABLE IF NOT EXISTS question_comment_likes (" +
                             "commentID INT NOT NULL," +
-                            "userID VARCHAR(64) NOT NULL," +
-                            "likeTime TIMESTAMP DEFAULT CURRENT_TIMESTAMP," +
-                            "PRIMARY KEY (questionID, commentID, userID)" +
+                            "userID VARCHAR(11) NOT NULL," +
+                            "PRIMARY KEY (commentID, userID)" +
                             ")")) {
                 ps.executeUpdate();
             }
             try (PreparedStatement ps = conn.prepareStatement(
-                    "INSERT INTO question_comment_like (questionID, commentID, userID) VALUES (?, ?, ?)")) {
-                ps.setString(1, qid);
-                ps.setInt(2, cid);
-                ps.setString(3, userID);
+                    "INSERT INTO question_comment_likes (commentID, userID) VALUES (?, ?)")) {
+                ps.setInt(1, cid);
+                ps.setString(2, userID);
                 ps.executeUpdate();
             } catch (SQLException e) {
                 if (e.getErrorCode() == 1062) {
@@ -772,7 +769,10 @@ public class DiscussionApiHandler {
     private void adminDeleteQuestion(String qid, HttpServletResponse response) throws SQLException, IOException {
         Connection conn = DBUtil.getConnection();
         try {
-            try (PreparedStatement ps = conn.prepareStatement("DELETE FROM question_comment_like WHERE questionID = ?")) {
+            try (PreparedStatement ps = conn.prepareStatement(
+                    "DELETE FROM question_comment_likes WHERE commentID IN (" +
+                            "SELECT commentID FROM (SELECT commentID FROM question_comment WHERE questionID = ?) t" +
+                            ")")) {
                 ps.setString(1, qid);
                 ps.executeUpdate();
             } catch (SQLException ignored) {
@@ -852,13 +852,12 @@ public class DiscussionApiHandler {
                     ps.executeUpdate();
                 }
                 try (PreparedStatement ps = conn.prepareStatement(
-                        "DELETE FROM question_comment_like WHERE questionID = ? AND (commentID = ? OR commentID IN (" +
+                        "DELETE FROM question_comment_likes WHERE commentID = ? OR commentID IN (" +
                                 "SELECT commentID FROM (SELECT commentID FROM question_comment WHERE questionID = ? AND parentCommentID = ?) t" +
-                                "))")) {
-                    ps.setString(1, qid);
-                    ps.setInt(2, cid);
-                    ps.setString(3, qid);
-                    ps.setInt(4, cid);
+                                ")")) {
+                    ps.setInt(1, cid);
+                    ps.setString(2, qid);
+                    ps.setInt(3, cid);
                     ps.executeUpdate();
                 } catch (SQLException ignored) {
                 }
@@ -879,9 +878,8 @@ public class DiscussionApiHandler {
                     ps.executeUpdate();
                 }
                 try (PreparedStatement ps = conn.prepareStatement(
-                        "DELETE FROM question_comment_like WHERE questionID = ? AND commentID = ?")) {
-                    ps.setString(1, qid);
-                    ps.setInt(2, cid);
+                        "DELETE FROM question_comment_likes WHERE commentID = ?")) {
+                    ps.setInt(1, cid);
                     ps.executeUpdate();
                 } catch (SQLException ignored) {
                 }
@@ -929,7 +927,10 @@ public class DiscussionApiHandler {
                 JsonResponse.write(response, JsonResponse.fail("只能删除自己发布的帖子"));
                 return;
             }
-            try (PreparedStatement ps = conn.prepareStatement("DELETE FROM question_comment_like WHERE questionID = ?")) {
+            try (PreparedStatement ps = conn.prepareStatement(
+                    "DELETE FROM question_comment_likes WHERE commentID IN (" +
+                            "SELECT commentID FROM (SELECT commentID FROM question_comment WHERE questionID = ?) t" +
+                            ")")) {
                 ps.setString(1, qid);
                 ps.executeUpdate();
             } catch (SQLException ignored) {
@@ -1015,13 +1016,12 @@ public class DiscussionApiHandler {
                     ps.executeUpdate();
                 }
                 try (PreparedStatement ps = conn.prepareStatement(
-                        "DELETE FROM question_comment_like WHERE questionID = ? AND (commentID = ? OR commentID IN (" +
+                        "DELETE FROM question_comment_likes WHERE commentID = ? OR commentID IN (" +
                                 "SELECT commentID FROM (SELECT commentID FROM question_comment WHERE questionID = ? AND parentCommentID = ?) t" +
-                                "))")) {
-                    ps.setString(1, qid);
-                    ps.setInt(2, cid);
-                    ps.setString(3, qid);
-                    ps.setInt(4, cid);
+                                ")")) {
+                    ps.setInt(1, cid);
+                    ps.setString(2, qid);
+                    ps.setInt(3, cid);
                     ps.executeUpdate();
                 } catch (SQLException ignored) {
                 }
@@ -1034,9 +1034,8 @@ public class DiscussionApiHandler {
                 }
             } else {
                 try (PreparedStatement ps = conn.prepareStatement(
-                        "DELETE FROM question_comment_like WHERE questionID = ? AND commentID = ?")) {
-                    ps.setString(1, qid);
-                    ps.setInt(2, cid);
+                        "DELETE FROM question_comment_likes WHERE commentID = ?")) {
+                    ps.setInt(1, cid);
                     ps.executeUpdate();
                 } catch (SQLException ignored) {
                 }
